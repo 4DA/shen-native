@@ -1373,7 +1373,7 @@ void write(object *obj) {
 
 int main(void) {
 
-	printf("Welcome to Bootstrap Scheme. "
+	printf("Welcome to Bootstrap Shen. "
 	       "Use ctrl-c to exit.\n");
 
 	init();
