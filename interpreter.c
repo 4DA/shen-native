@@ -603,7 +603,7 @@ void init(void) {
     
 	symbol_table = the_empty_list;
 	quote_symbol = make_symbol("quote");
-	define_symbol = make_symbol("define");
+	define_symbol = make_symbol("defun");
 	set_symbol = make_symbol("set!");
 	ok_symbol = make_symbol("ok");
 	if_symbol = make_symbol("if");
