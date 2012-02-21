@@ -77,7 +77,7 @@ object *false;
 object *true;
 object *symbol_table;
 object *quote_symbol;
-object *define_symbol;
+object *defun_symbol;
 object *set_symbol;
 object *ok_symbol;
 object *if_symbol;
@@ -603,7 +603,7 @@ void init(void) {
     
 	symbol_table = the_empty_list;
 	quote_symbol = make_symbol("quote");
-	define_symbol = make_symbol("defun");
+	defun_symbol = make_symbol("defun");
 	set_symbol = make_symbol("set!");
 	ok_symbol = make_symbol("ok");
 	if_symbol = make_symbol("if");
@@ -945,7 +945,7 @@ object *assignment_value(object *exp) {
 }
 
 char is_definition(object *exp) {
-	return is_tagged_list(exp, define_symbol);
+	return is_tagged_list(exp, defun_symbol);
 }
 
 object *definition_variable(object *exp) {
