@@ -60,24 +60,6 @@ typedef struct object {
 	} data;
 } object;
 
-void dump_object(object *obj, char *str)
-{
-	switch(obj->type) {
-	case SYMBOL:
-		printf("%s %s", str, obj->data.symbol.value);
-		break;
-	case STRING:
-		printf("%s %s", str, obj->data.string.value);
-		break;
-	case PAIR:
-		printf("%s [ ", str);
-		write_pair(obj);
-		printf(" ]");
-		break;
-	default:
-		printf("%s <unkn>", str);
-	};
-}
 
 /* no GC so truely "unlimited extent" */
 object *alloc_object(void) {
@@ -112,7 +94,9 @@ object *cons(object *car, object *cdr);
 object *car(object *pair);
 object *cdr(object *pair);
 
-char is_the_empty_list(object *obj) {
+void dump_object(object *obj, char *str);
+
+ char is_the_empty_list(object *obj) {
 	return obj == the_empty_list;
 }
 
@@ -535,6 +519,7 @@ object *extend_environment(object *vars, object *vals,
 }
 
 object *lookup_variable_value(object *var, object *env) {
+	printf("-->in lookup_variable_value\n");
 	object *frame;
 	object *vars;
 	object *vals;
@@ -551,7 +536,7 @@ object *lookup_variable_value(object *var, object *env) {
 		}
 		env = enclosing_environment(env);
 	}
-	fprintf(stderr, "unbound variable: %s\n", var->data.symbol.value);
+	fprintf(stderr, "<--unbound variable: %s\n", var->data.symbol.value);
 	exit(1);
 }
 
@@ -574,7 +559,7 @@ void set_variable_value(object *var, object *val, object *env) {
 		}
 		env = enclosing_environment(env);
 	}
-	fprintf(stderr, "unbound variable\n");
+	fprintf(stderr, "unbound variable %s: \n", var->data.symbol.value);
 	exit(1);
 }
 
@@ -974,7 +959,7 @@ object *definition_variable(object *exp) {
 	/* } */
 	/* else { */
 	/* printf("in definition_variable\n"); */
-	dump_object(exp, "in definition_variable: ");
+	/* dump_object(exp, "in definition_variable: "); */
 	return cadr(exp);
 	/* } */
 }
@@ -982,12 +967,12 @@ object *definition_variable(object *exp) {
 object *make_lambda(object *parameters, object *body);
 
 object *definition_value(object *exp) {
-	if (is_symbol(cadr(exp))) {
-		return caddr(exp);
-	}
-	else {
-		return make_lambda(cadar(exp), cdddr(exp));
-	}
+	/* dump_object(exp, "in definition_value: \n"); */
+	/* dump_object(caddr(exp), "args: "); */
+	/* dump_object(cadddr(exp), "body: "); */
+	
+	return make_lambda(caddr(exp), cdddr(exp));
+	/* printf("<-- definition_value\n"); */
 }
 
 object *make_if(object *predicate, object *consequent,
@@ -1219,8 +1204,9 @@ object *eval_assignment(object *exp, object *env) {
 }
 
 object *eval_definition(object *exp, object *env) {
-	dump_object(exp, "in eval_definition: ");
-	printf("\n");
+	/* dump_object(exp, "in eval_definition: "); */
+	/* dump_object(definition_value(exp), "def value:"); */
+	/* printf("\n"); */
 	
 	define_variable(definition_variable(exp), 
 			eval(definition_value(exp), env),
@@ -1393,6 +1379,29 @@ void write(object *obj) {
 		exit(1);
 	}
 }
+
+/************************** DEBUG FACILITIES ******************************/
+void dump_object(object *obj, char *str)
+{
+	/* write(obj); */
+	switch(obj->type) {
+	case SYMBOL:
+		printf("%s %s", str, obj->data.symbol.value);
+		break;
+	case STRING:
+		printf("%s %s", str, obj->data.string.value);
+		break;
+	case PAIR:
+		printf("%s [ ", str);
+		write_pair(obj);
+		printf(" ]");
+		break;
+	default:
+		printf("%s <unkn>", str);
+	};
+	printf("\n");
+}
+
 
 /***************************** REPL ******************************/
 
