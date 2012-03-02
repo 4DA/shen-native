@@ -60,6 +60,7 @@ typedef struct object {
 	} data;
 } object;
 
+void write(object *obj);
 
 /* no GC so truely "unlimited extent" */
 object *alloc_object(void) {
@@ -88,7 +89,8 @@ object *cond_symbol;
 object *else_symbol;
 object *let_symbol;
 object *the_empty_environment;
-object *the_global_environment;
+object *funcs_env;
+object *vars_env;
 
 object *cons(object *car, object *cdr);
 object *car(object *pair);
@@ -328,8 +330,14 @@ object *string_to_symbol_proc(object *arguments) {
 
 object *add_proc(object *arguments) {
 	long result = 0;
-    
+
+	printf("--> addproc ( ");
+	write(arguments);
+	printf(" )\n");
+	/* printf("\n"); */
+	/* printf("arg: ");     */
 	while (!is_the_empty_list(arguments)) {
+		/* printf("%d(%d)[%s] ", (car(arguments))->data.fixnum.value, (car(arguments))->type, (car(arguments))->data.symbol.value);     */
 		result += (car(arguments))->data.fixnum.value;
 		arguments = cdr(arguments);
 	}
@@ -470,6 +478,11 @@ object *is_eq_proc(object *arguments) {
 		return (obj1 == obj2) ? true : false;
 	}
 }
+object *lookup_variable_value(object *var, object *env);
+
+object *value_proc(object *symbol, object *env) {
+	return lookup_variable_value(symbol, env);
+}
 
 object *make_compound_proc(object *parameters, object *body,
                            object* env) {
@@ -559,8 +572,7 @@ void set_variable_value(object *var, object *val, object *env) {
 		}
 		env = enclosing_environment(env);
 	}
-	fprintf(stderr, "unbound variable %s: \n", var->data.symbol.value);
-	exit(1);
+	env = extend_environment(var, val, env);
 }
 
 void define_variable(object *var, object *val, object *env) {
@@ -608,7 +620,7 @@ void init(void) {
 	symbol_table = the_empty_list;
 	quote_symbol = make_symbol("quote");
 	defun_symbol = make_symbol("defun");
-	set_symbol = make_symbol("set!");
+	set_symbol = make_symbol("set");
 	ok_symbol = make_symbol("ok");
 	if_symbol = make_symbol("if");
 	lambda_symbol = make_symbol("lambda");
@@ -619,12 +631,13 @@ void init(void) {
     
 	the_empty_environment = the_empty_list;
 
-	the_global_environment = setup_environment();
+	funcs_env = setup_environment();
+	vars_env = setup_environment();
 
 #define add_procedure(scheme_name, c_name)              \
 	define_variable(make_symbol(scheme_name),	\
 			make_primitive_proc(c_name),	\
-			the_global_environment);
+			funcs_env);
 
 	add_procedure("null?"      , is_null_proc);
 	add_procedure("boolean?"   , is_boolean_proc);
@@ -659,8 +672,9 @@ void init(void) {
 	add_procedure("list"    , list_proc);
 
 	add_procedure("eq?", is_eq_proc);
+	add_procedure("value", value_proc);
 }
-
+ 
 /***************************** READ ******************************/
 
 char is_delimiter(int c) {
@@ -911,6 +925,7 @@ char is_self_evaluating(object *exp) {
 	return is_boolean(exp)   ||
 		is_fixnum(exp)    ||
 		is_character(exp) ||
+		is_symbol(exp) ||
 		is_string(exp);
 }
 
@@ -1263,8 +1278,21 @@ tailcall:
 		goto tailcall;
 	}
 	else if (is_application(exp)) {
-		procedure = eval(operator(exp), env);
+		printf("eval: application\n");
+		
+		/* procedure = eval(operator(exp), env); */
+		/* procedure = lookup_variable_value(operator(exp), funcs_env); */
+		procedure = lookup_variable_value(operator(exp), funcs_env);
 		arguments = list_of_values(operands(exp), env);
+
+		printf("\n----------\nprocedure: ");
+		write(procedure);
+		printf("\n");
+
+		printf("\n---------\nargs: ");
+		write(arguments);
+		printf("\n-----------\n");
+	       
 		if (is_primitive_proc(procedure)) {
 			return (procedure->data.primitive_proc.fn)(arguments);
 		}
@@ -1277,7 +1305,9 @@ tailcall:
 			goto tailcall;
 		}
 		else {
-			fprintf(stderr, "unknown procedure type\n");
+			fprintf(stderr, "unknown procedure type: ");
+			write(procedure);
+			printf("\npr type: %d\n", procedure->type);
 			exit(1);
 		}
 	}
@@ -1291,7 +1321,6 @@ tailcall:
 
 /**************************** PRINT ******************************/
 
-void write(object *obj);
 
 void write_pair(object *pair) {
 	object *car_obj;
@@ -1371,8 +1400,14 @@ void write(object *obj) {
 		printf(")");
 		break;
         case PRIMITIVE_PROC:
-        case COMPOUND_PROC:
 		printf("#<procedure>");
+		break;
+        case COMPOUND_PROC:
+		printf("#<compound-procedure> :");
+		printf("\nparams: \n");
+		write(obj->data.compound_proc.parameters);
+		printf("\nbody: \n");
+		write(obj->data.compound_proc.body);
 		break;
         default:
 		fprintf(stderr, "cannot write unknown type\n");
@@ -1414,7 +1449,7 @@ int main(void) {
 
 	while (1) {
 		printf("> ");
-		write(eval(read(stdin), the_global_environment));
+		write(eval(read(stdin), vars_env));
 		printf("\n");
 	}
 
