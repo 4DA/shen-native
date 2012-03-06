@@ -88,6 +88,7 @@ object *begin_symbol;
 object *cond_symbol;
 object *else_symbol;
 object *let_symbol;
+object *value_symbol;
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
@@ -478,11 +479,12 @@ object *is_eq_proc(object *arguments) {
 		return (obj1 == obj2) ? true : false;
 	}
 }
+
 object *lookup_variable_value(object *var, object *env);
 
-object *value_proc(object *symbol, object *env) {
-	return lookup_variable_value(symbol, env);
-}
+/* object *value_proc(object *symbol, object *env) { */
+/* 	return lookup_variable_value(symbol, env); */
+/* } */
 
 object *make_compound_proc(object *parameters, object *body,
                            object* env) {
@@ -549,7 +551,12 @@ object *lookup_variable_value(object *var, object *env) {
 		}
 		env = enclosing_environment(env);
 	}
-	fprintf(stderr, "<--unbound variable: %s\n", var->data.symbol.value);
+	fprintf(stderr, "<--unbound variable: ");
+	write(var);
+	printf("\n");
+	printf("env = ");
+	write(env);
+	printf("\n");
 	exit(1);
 }
 
@@ -572,7 +579,11 @@ void set_variable_value(object *var, object *val, object *env) {
 		}
 		env = enclosing_environment(env);
 	}
-	env = extend_environment(var, val, env);
+	/* env = extend_environment(var, val, env); */
+	add_binding_to_frame(var, val, frame);
+	/* printf("ext env: "); */
+	/* write(env); */
+	/* printf("\n"); */
 }
 
 void define_variable(object *var, object *val, object *env) {
@@ -628,6 +639,7 @@ void init(void) {
 	cond_symbol = make_symbol("cond");
 	else_symbol = make_symbol("else");
 	let_symbol = make_symbol("let");
+	value_symbol = make_symbol("value");
     
 	the_empty_environment = the_empty_list;
 
@@ -672,7 +684,7 @@ void init(void) {
 	add_procedure("list"    , list_proc);
 
 	add_procedure("eq?", is_eq_proc);
-	add_procedure("value", value_proc);
+	/* add_procedure("value", value_proc); */
 }
  
 /***************************** READ ******************************/
@@ -968,6 +980,10 @@ char is_definition(object *exp) {
 	return is_tagged_list(exp, defun_symbol);
 }
 
+char is_value(object *exp) {
+	return is_tagged_list(exp, value_symbol);
+}
+
 object *definition_variable(object *exp) {
 	/* if (is_symbol(cadr(exp))) { */
 	/* 	return cadr(exp); */
@@ -1215,6 +1231,10 @@ object *eval_assignment(object *exp, object *env) {
 	set_variable_value(assignment_variable(exp), 
 			   eval(assignment_value(exp), env),
 			   env);
+	printf("assgn env: ");
+	write(env);
+	printf("\n");
+
 	return ok_symbol;
 }
 
@@ -1276,6 +1296,9 @@ tailcall:
 	else if (is_let(exp)) {
 		exp = let_to_application(exp);
 		goto tailcall;
+	}
+	else if (is_value(exp)) {
+		return lookup_variable_value(binding_argument(exp), env);
 	}
 	else if (is_application(exp)) {
 		printf("eval: application\n");
@@ -1442,7 +1465,7 @@ void dump_object(object *obj, char *str)
 
 int main(void) {
 
-	printf("Welcome to Bootstrap Shen. "
+	printf("Welcome to KL interpreter. "
 	       "Use ctrl-c to exit.\n");
 
 	init();
