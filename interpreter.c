@@ -1267,7 +1267,7 @@ tailcall:
 		return eval_assignment(exp, env);
 	}
 	else if (is_definition(exp)) {
-		return eval_definition(exp, env);
+		return eval_definition(exp, funcs_env);
 	}
 	else if (is_if(exp)) {
 		exp = is_true(eval(if_predicate(exp), env)) ?
