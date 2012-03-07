@@ -60,6 +60,10 @@ typedef struct object {
 	} data;
 } object;
 
+/* EF - eval flag */
+#define EF_NULL 0
+#define EF_ARGUMENTS 1
+
 void write(object *obj);
 
 /* no GC so truely "unlimited extent" */
@@ -933,11 +937,11 @@ object *read(FILE *in) {
 
 /*************************** EVALUATE ****************************/
 
-char is_self_evaluating(object *exp) {
+char is_self_evaluating(object *exp, unsigned long flags) {
 	return is_boolean(exp)   ||
 		is_fixnum(exp)    ||
 		is_character(exp) ||
-		is_symbol(exp) ||
+		((~flags & EF_ARGUMENTS) && is_symbol(exp)) ||
 		is_string(exp);
 }
 
@@ -1215,25 +1219,29 @@ object *let_to_application(object *exp) {
 		let_arguments(exp));
 }
 
-object *eval(object *exp, object *env);
 
-object *list_of_values(object *exps, object *env) {
+object *eval(object *exp, object *env, unsigned long flags);
+
+object *list_of_values(object *exps, object *env, unsigned long flags) {
 	if (is_no_operands(exps)) {
 		return the_empty_list;
 	}
 	else {
-		return cons(eval(first_operand(exps), env),
-			    list_of_values(rest_operands(exps), env));
+		return cons(eval(first_operand(exps), env, flags),
+			    list_of_values(rest_operands(exps), env, flags));
 	}
 }
 
 object *eval_assignment(object *exp, object *env) {
 	set_variable_value(assignment_variable(exp), 
-			   eval(assignment_value(exp), env),
+			   eval(assignment_value(exp), env, EF_NULL),
 			   env);
-	printf("assgn env: ");
-	write(env);
-	printf("\n");
+	/* printf("assgn env: "); */
+	/* write(env); */
+	/* printf("\n"); */
+
+	/* long flags = EF_ARGUMENTS; */
+	/* printf("EF is %lu\n", !(~flags & EF_ARGUMENTS)); */
 
 	return ok_symbol;
 }
@@ -1244,20 +1252,27 @@ object *eval_definition(object *exp, object *env) {
 	/* printf("\n"); */
 	
 	define_variable(definition_variable(exp), 
-			eval(definition_value(exp), env),
+			eval(definition_value(exp), env, EF_NULL),
 			env);
 	return ok_symbol;
 }
 
-object *eval(object *exp, object *env) {
+
+object *eval(object *exp, object *env, unsigned long flags) {
 	object *procedure;
 	object *arguments;
 
 tailcall:
-	if (is_self_evaluating(exp)) {
+	if (is_self_evaluating(exp, flags)) {
+		printf("exp: ");
+		write(exp);
+		printf("\n is self-eval (flags = %lu )\n", flags);
 		return exp;
 	}
 	else if (is_variable(exp)) {
+		printf("exp: ");
+		write(exp);
+		printf("\n is variable\n");
 		return lookup_variable_value(exp, env);
 	}
 	else if (is_quoted(exp)) {
@@ -1270,7 +1285,7 @@ tailcall:
 		return eval_definition(exp, funcs_env);
 	}
 	else if (is_if(exp)) {
-		exp = is_true(eval(if_predicate(exp), env)) ?
+		exp = is_true(eval(if_predicate(exp), env, flags)) ?
 			if_consequent(exp) :
 			if_alternative(exp);
 		goto tailcall;
@@ -1283,7 +1298,7 @@ tailcall:
 	else if (is_begin(exp)) {
 		exp = begin_actions(exp);
 		while (!is_last_exp(exp)) {
-			eval(first_exp(exp), env);
+			eval(first_exp(exp), env, flags);
 			exp = rest_exps(exp);
 		}
 		exp = first_exp(exp);
@@ -1302,11 +1317,11 @@ tailcall:
 	}
 	else if (is_application(exp)) {
 		printf("eval: application\n");
-		
+
 		/* procedure = eval(operator(exp), env); */
 		/* procedure = lookup_variable_value(operator(exp), funcs_env); */
 		procedure = lookup_variable_value(operator(exp), funcs_env);
-		arguments = list_of_values(operands(exp), env);
+		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
 		printf("\n----------\nprocedure: ");
 		write(procedure);
@@ -1325,6 +1340,9 @@ tailcall:
 				arguments,
 				procedure->data.compound_proc.env);
 			exp = make_begin(procedure->data.compound_proc.body);
+			printf("env: ");
+			write(env);
+			printf("\n--------------\n");
 			goto tailcall;
 		}
 		else {
@@ -1472,7 +1490,7 @@ int main(void) {
 
 	while (1) {
 		printf("> ");
-		write(eval(read(stdin), vars_env));
+		write(eval(read(stdin), vars_env, 0));
 		printf("\n");
 	}
 
