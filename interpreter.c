@@ -1340,6 +1340,7 @@ tailcall:
 				arguments,
 				procedure->data.compound_proc.env);
 			exp = make_begin(procedure->data.compound_proc.body);
+			flags |= EF_ARGUMENTS;
 			printf("env: ");
 			write(env);
 			printf("\n--------------\n");
