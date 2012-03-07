@@ -1,19 +1,7 @@
 /*
- * Bootstrap Scheme - a quick and very dirty Scheme interpreter.
- * Copyright (C) 2010 Peter Michaux (http://peter.michaux.ca/)
- *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU Affero General Public
- * License version 3 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License version 3 for more details.
- *
- * You should have received a copy of the GNU Affero General Public
- * License version 3 along with this program. If not, see
- * <http://www.gnu.org/licenses/>.
+ * Bootstrap KL 
+ * Copyright (C) 2012 Dmitry Cherkassov
+ * BSD license
  */
 
 #include <stdlib.h>
@@ -1497,14 +1485,3 @@ int main(void) {
 
 	return 0;
 }
-
-/**************************** MUSIC *******************************
-
-Slipknot, Neil Young, Pearl Jam, The Dead Weather,
-Dave Matthews Band, Alice in Chains, White Zombie, Blind Melon,
-Priestess, Puscifer, Bob Dylan, Them Crooked Vultures,
-Black Sabbath, Pantera, Tool, ZZ Top, Queens of the Stone Age,
-Raised Fist, Rage Against the Machine, Primus, Black Label Society,
-The Offspring
-
-*/
