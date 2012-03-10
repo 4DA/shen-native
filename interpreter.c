@@ -1220,9 +1220,9 @@ object *list_of_values(object *exps, object *env, unsigned long flags) {
 	}
 }
 
-object *eval_assignment(object *exp, object *env) {
+object *eval_assignment(object *exp, object *env, unsigned long flags) {
 	set_variable_value(assignment_variable(exp), 
-			   eval(assignment_value(exp), env, EF_NULL),
+			   eval(assignment_value(exp), env, flags),
 			   env);
 	/* printf("assgn env: "); */
 	/* write(env); */
@@ -1230,6 +1230,10 @@ object *eval_assignment(object *exp, object *env) {
 
 	/* long flags = EF_ARGUMENTS; */
 	/* printf("EF is %lu\n", !(~flags & EF_ARGUMENTS)); */
+
+	printf("in ev_asgn: vars_env = ");
+	write(vars_env);
+	printf("\n");
 
 	return ok_symbol;
 }
@@ -1241,7 +1245,7 @@ object *eval_definition(object *exp, object *env) {
 	
 	define_variable(definition_variable(exp), 
 			eval(definition_value(exp), env, EF_NULL),
-			env);
+			funcs_env);
 	return ok_symbol;
 }
 
@@ -1250,7 +1254,13 @@ object *eval(object *exp, object *env, unsigned long flags) {
 	object *procedure;
 	object *arguments;
 
+	printf("-->eval\n");
 tailcall:
+	printf("-->tailcall\n");
+	printf("env = ");
+	write(env);
+	printf("\n");
+	
 	if (is_self_evaluating(exp, flags)) {
 		printf("exp: ");
 		write(exp);
@@ -1267,10 +1277,10 @@ tailcall:
 		return text_of_quotation(exp);
 	}
 	else if (is_assignment(exp)) {
-		return eval_assignment(exp, env);
+		return eval_assignment(exp, env, flags);
 	}
 	else if (is_definition(exp)) {
-		return eval_definition(exp, funcs_env);
+		return eval_definition(exp, env);
 	}
 	else if (is_if(exp)) {
 		exp = is_true(eval(if_predicate(exp), env, flags)) ?
