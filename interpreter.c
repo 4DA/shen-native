@@ -52,7 +52,7 @@ typedef struct object {
 #define EF_NULL 0
 #define EF_ARGUMENTS 1
 
-void write(object *obj);
+void print(object *obj);
 
 /* no GC so truely "unlimited extent" */
 object *alloc_object(void) {
@@ -325,7 +325,7 @@ object *add_proc(object *arguments) {
 	long result = 0;
 
 	printf("--> addproc ( ");
-	write(arguments);
+	print(arguments);
 	printf(" )\n");
 	/* printf("\n"); */
 	/* printf("arg: ");     */
@@ -544,10 +544,10 @@ object *lookup_variable_value(object *var, object *env) {
 		env = enclosing_environment(env);
 	}
 	fprintf(stderr, "<--unbound variable: ");
-	write(var);
+	print(var);
 	printf("\n");
 	printf("env = ");
-	write(env);
+	print(env);
 	printf("\n");
 	exit(1);
 }
@@ -574,7 +574,7 @@ void set_variable_value(object *var, object *val, object *env) {
 	/* env = extend_environment(var, val, env); */
 	add_binding_to_frame(var, val, frame);
 	/* printf("ext env: "); */
-	/* write(env); */
+	/* print(env); */
 	/* printf("\n"); */
 }
 
@@ -1225,14 +1225,14 @@ object *eval_assignment(object *exp, object *env, unsigned long flags) {
 			   eval(assignment_value(exp), env, flags),
 			   env);
 	/* printf("assgn env: "); */
-	/* write(env); */
+	/* print(env); */
 	/* printf("\n"); */
 
 	/* long flags = EF_ARGUMENTS; */
 	/* printf("EF is %lu\n", !(~flags & EF_ARGUMENTS)); */
 
 	printf("in ev_asgn: vars_env = ");
-	write(vars_env);
+	print(vars_env);
 	printf("\n");
 
 	return ok_symbol;
@@ -1258,18 +1258,18 @@ object *eval(object *exp, object *env, unsigned long flags) {
 tailcall:
 	printf("-->tailcall\n");
 	printf("env = ");
-	write(env);
+	print(env);
 	printf("\n");
 	
 	if (is_self_evaluating(exp, flags)) {
 		printf("exp: ");
-		write(exp);
+		print(exp);
 		printf("\n is self-eval (flags = %lu )\n", flags);
 		return exp;
 	}
 	else if (is_variable(exp)) {
 		printf("exp: ");
-		write(exp);
+		print(exp);
 		printf("\n is variable\n");
 		return lookup_variable_value(exp, env);
 	}
@@ -1322,11 +1322,11 @@ tailcall:
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
 		printf("\n----------\nprocedure: ");
-		write(procedure);
+		print(procedure);
 		printf("\n");
 
 		printf("\n---------\nargs: ");
-		write(arguments);
+		print(arguments);
 		printf("\n-----------\n");
 	       
 		if (is_primitive_proc(procedure)) {
@@ -1340,13 +1340,13 @@ tailcall:
 			exp = make_begin(procedure->data.compound_proc.body);
 			flags |= EF_ARGUMENTS;
 			printf("env: ");
-			write(env);
+			print(env);
 			printf("\n--------------\n");
 			goto tailcall;
 		}
 		else {
 			fprintf(stderr, "unknown procedure type: ");
-			write(procedure);
+			print(procedure);
 			printf("\npr type: %d\n", procedure->type);
 			exit(1);
 		}
@@ -1362,27 +1362,27 @@ tailcall:
 /**************************** PRINT ******************************/
 
 
-void write_pair(object *pair) {
+void print_pair(object *pair) {
 	object *car_obj;
 	object *cdr_obj;
     
 	car_obj = car(pair);
 	cdr_obj = cdr(pair);
-	write(car_obj);
+	print(car_obj);
 	if (cdr_obj->type == PAIR) {
 		printf(" ");
-		write_pair(cdr_obj);
+		print_pair(cdr_obj);
 	}
 	else if (cdr_obj->type == THE_EMPTY_LIST) {
 		return;
 	}
 	else {
 		printf(" . ");
-		write(cdr_obj);
+		print(cdr_obj);
 	}
 }
 
-void write(object *obj) {
+void print(object *obj) {
 	char c;
 	char *str;
     
@@ -1436,7 +1436,7 @@ void write(object *obj) {
 		break;
         case PAIR:
 		printf("(");
-		write_pair(obj);
+		print_pair(obj);
 		printf(")");
 		break;
         case PRIMITIVE_PROC:
@@ -1445,12 +1445,12 @@ void write(object *obj) {
         case COMPOUND_PROC:
 		printf("#<compound-procedure> :");
 		printf("\nparams: \n");
-		write(obj->data.compound_proc.parameters);
+		print(obj->data.compound_proc.parameters);
 		printf("\nbody: \n");
-		write(obj->data.compound_proc.body);
+		print(obj->data.compound_proc.body);
 		break;
         default:
-		fprintf(stderr, "cannot write unknown type\n");
+		fprintf(stderr, "cannot print unknown type\n");
 		exit(1);
 	}
 }
@@ -1458,7 +1458,7 @@ void write(object *obj) {
 /************************** DEBUG FACILITIES ******************************/
 void dump_object(object *obj, char *str)
 {
-	/* write(obj); */
+	/* print(obj); */
 	switch(obj->type) {
 	case SYMBOL:
 		printf("%s %s", str, obj->data.symbol.value);
@@ -1468,7 +1468,7 @@ void dump_object(object *obj, char *str)
 		break;
 	case PAIR:
 		printf("%s [ ", str);
-		write_pair(obj);
+		print_pair(obj);
 		printf(" ]");
 		break;
 	default:
@@ -1489,7 +1489,7 @@ int main(void) {
 
 	while (1) {
 		printf("> ");
-		write(eval(read(stdin), vars_env, 0));
+		print(eval(read(stdin), vars_env, 0));
 		printf("\n");
 	}
 
