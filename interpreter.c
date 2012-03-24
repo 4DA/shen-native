@@ -181,6 +181,10 @@ char is_string(object *obj) {
 	return obj->type == STRING;
 }
 
+char is_empty_list(object *obj) {
+	return obj->type == THE_EMPTY_LIST;
+}
+
 object *cons(object *car, object *cdr) {
 	object *obj;
     
@@ -930,7 +934,8 @@ char is_self_evaluating(object *exp, unsigned long flags) {
 		is_fixnum(exp)    ||
 		is_character(exp) ||
 		((~flags & EF_ARGUMENTS) && is_symbol(exp)) ||
-		is_string(exp);
+		is_string(exp) ||
+		is_empty_list(exp);
 }
 
 char is_variable(object *expression) {
