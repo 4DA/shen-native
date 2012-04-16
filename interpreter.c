@@ -11,7 +11,7 @@
 
 /**************************** MODEL ******************************/
 
-typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, FIXNUM,
+typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
               COMPOUND_PROC} object_type;
 
@@ -23,6 +23,7 @@ typedef struct object {
 		} boolean;
 		struct {
 			char *value;
+			char is_argument;
 		} symbol;
 		struct {
 			long value;
@@ -124,6 +125,7 @@ object *make_symbol(char *value) {
 	obj = alloc_object();
 	obj->type = SYMBOL;
 	obj->data.symbol.value = malloc(strlen(value) + 1);
+	obj->data.symbol.is_argument = 0;
 	if (obj->data.symbol.value == NULL) {
 		fprintf(stderr, "out of memory\n");
 		exit(1);
@@ -133,9 +135,20 @@ object *make_symbol(char *value) {
 	return obj;
 }
 
+object *make_argument(char *value)
+{
+	object *obj = make_symbol(value);
+	obj->data.symbol.is_argument = 1;
+}
+
 char is_symbol(object *obj) {
 	return obj->type == SYMBOL;
 }
+
+char is_argument(object *obj) {
+	return obj->data.symbol.is_argument == 1;
+}
+
 
 object *make_fixnum(long value) {
 	object *obj;
@@ -488,6 +501,13 @@ object *make_compound_proc(object *parameters, object *body,
     
 	obj = alloc_object();
 	obj->type = COMPOUND_PROC;
+
+	object *tmp = parameters;
+	while (!is_empty_list(tmp)) {
+		car(tmp)->data.symbol.is_argument = 1;
+		tmp = cdr(tmp);
+	}
+	
 	obj->data.compound_proc.parameters = parameters;
 	obj->data.compound_proc.body = body;
 	obj->data.compound_proc.env = env;
@@ -933,7 +953,7 @@ char is_self_evaluating(object *exp, unsigned long flags) {
 	return is_boolean(exp)   ||
 		is_fixnum(exp)    ||
 		is_character(exp) ||
-		((~flags & EF_ARGUMENTS) && is_symbol(exp)) ||
+		is_symbol(exp) && (!is_argument(exp)) ||
 		is_string(exp) ||
 		is_empty_list(exp);
 }
@@ -1220,7 +1240,9 @@ object *list_of_values(object *exps, object *env, unsigned long flags) {
 		return the_empty_list;
 	}
 	else {
-		return cons(eval(first_operand(exps), env, flags),
+		object *pcr = eval(first_operand(exps), env, flags);
+		
+		return cons(pcr,
 			    list_of_values(rest_operands(exps), env, flags));
 	}
 }
@@ -1261,6 +1283,8 @@ object *eval(object *exp, object *env, unsigned long flags) {
 
 	printf("-->eval\n");
 tailcall:
+	print(exp);
+	printf("\n");
 	printf("-->tailcall\n");
 	printf("env = ");
 	print(env);
