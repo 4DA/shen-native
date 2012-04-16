@@ -159,6 +159,11 @@ object *make_fixnum(long value) {
 	return obj;
 }
 
+object *make_boolean(char value) {
+	object *obj = (value) ? true : false;
+	return obj;
+}
+
 char is_fixnum(object *obj) {
 	return obj->type == FIXNUM;
 }
@@ -469,25 +474,45 @@ object *is_eq_proc(object *arguments) {
 		return false;
 	}
 	switch (obj1->type) {
-        case FIXNUM:
+	case FIXNUM:
 		return (obj1->data.fixnum.value == 
 			obj2->data.fixnum.value) ?
                         true : false;
 		break;
-        case CHARACTER:
+	case CHARACTER:
 		return (obj1->data.character.value == 
 			obj2->data.character.value) ?
                         true : false;
 		break;
-        case STRING:
+	case STRING:
 		return (strcmp(obj1->data.string.value, 
 			       obj2->data.string.value) == 0) ?
                         true : false;
+	case BOOLEAN:
+		return (obj1->data.boolean.value == 
+				obj2->data.boolean.value) ?
+			true : false;
+
 		break;
         default:
 		return (obj1 == obj2) ? true : false;
 	}
 }
+
+object *and_proc(object *arguments)
+{
+	return make_boolean(
+		car(arguments)->data.boolean.value && 
+		car(cdr(arguments))->data.boolean.value);
+}
+
+object *or_proc(object *arguments)
+{
+	return make_boolean(
+		car(arguments)->data.boolean.value || 
+		car(cdr(arguments))->data.boolean.value);
+}
+
 
 object *lookup_variable_value(object *var, object *env);
 
@@ -691,6 +716,8 @@ void init(void) {
 	add_procedure("="        , is_number_equal_proc);
 	add_procedure("<"        , is_less_than_proc);
 	add_procedure(">"        , is_greater_than_proc);
+	add_procedure("and"      , and_proc);
+	add_procedure("or"       , or_proc);
 
 	add_procedure("cons"    , cons_proc);
 	add_procedure("car"     , car_proc);
@@ -953,7 +980,7 @@ char is_self_evaluating(object *exp, unsigned long flags) {
 	return is_boolean(exp)   ||
 		is_fixnum(exp)    ||
 		is_character(exp) ||
-		is_symbol(exp) && (!is_argument(exp)) ||
+		(is_symbol(exp) && (!is_argument(exp))) ||
 		is_string(exp) ||
 		is_empty_list(exp);
 }
@@ -1482,6 +1509,12 @@ void print(object *obj) {
 		fprintf(stderr, "cannot print unknown type\n");
 		exit(1);
 	}
+}
+
+void println(object *obj)
+{
+	print(obj);
+	printf("\n");
 }
 
 /************************** DEBUG FACILITIES ******************************/
