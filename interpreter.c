@@ -24,6 +24,7 @@ typedef struct object {
 		struct {
 			char *value;
 			char is_argument;
+			char is_func;
 		} symbol;
 		struct {
 			long value;
@@ -126,6 +127,7 @@ object *make_symbol(char *value) {
 	obj->type = SYMBOL;
 	obj->data.symbol.value = malloc(strlen(value) + 1);
 	obj->data.symbol.is_argument = 0;
+	obj->data.symbol.is_func = 0;
 	if (obj->data.symbol.value == NULL) {
 		fprintf(stderr, "out of memory\n");
 		exit(1);
@@ -980,7 +982,7 @@ char is_self_evaluating(object *exp, unsigned long flags) {
 	return is_boolean(exp)   ||
 		is_fixnum(exp)    ||
 		is_character(exp) ||
-		(is_symbol(exp) && (!is_argument(exp))) ||
+		(is_symbol(exp) && (!is_argument(exp)) && (exp->data.symbol.is_func==0)) ||
 		is_string(exp) ||
 		is_empty_list(exp);
 }
@@ -1372,9 +1374,10 @@ tailcall:
 	else if (is_application(exp)) {
 		printf("eval: application\n");
 
-		/* procedure = eval(operator(exp), env); */
+		operator(exp)->data.symbol.is_func = 1;
+		procedure = eval(operator(exp), funcs_env, flags);
 		/* procedure = lookup_variable_value(operator(exp), funcs_env); */
-		procedure = lookup_variable_value(operator(exp), funcs_env);
+		/* procedure = lookup_variable_value(operator(exp), funcs_env); */
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
 		printf("\n----------\nprocedure: ");
