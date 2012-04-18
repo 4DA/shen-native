@@ -1374,10 +1374,11 @@ tailcall:
 	else if (is_application(exp)) {
 		printf("eval: application\n");
 
-		operator(exp)->data.symbol.is_func = 1;
+		if (!(is_lambda(operator(exp)))
+			&& is_symbol(operator(exp)))
+			operator(exp)->data.symbol.is_func = 1;
+		
 		procedure = eval(operator(exp), funcs_env, flags);
-		/* procedure = lookup_variable_value(operator(exp), funcs_env); */
-		/* procedure = lookup_variable_value(operator(exp), funcs_env); */
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
 		printf("\n----------\nprocedure: ");
