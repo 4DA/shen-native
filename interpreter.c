@@ -1090,7 +1090,7 @@ char is_lambda(object *exp) {
 }
 
 object *lambda_parameters(object *exp) {
-	return cadr(exp);
+	return cons(cadr(exp), the_empty_list);
 }
 
 object *lambda_body(object *exp) {
