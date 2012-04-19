@@ -1090,7 +1090,16 @@ char is_lambda(object *exp) {
 }
 
 object *lambda_parameters(object *exp) {
-	return cons(cadr(exp), the_empty_list);
+	// shen lambdas have this form:
+	// (lambda s f)
+	// where s is symbol and f is any valid expression
+	// but since current defun code uses multi-parameter lambda
+	// i just handle it here
+	
+	if (is_symbol(cadr(exp)))
+		return cons(cadr(exp), the_empty_list);
+	else
+		return cadr(exp);
 }
 
 object *lambda_body(object *exp) {
