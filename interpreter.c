@@ -117,7 +117,7 @@ object *make_symbol(char *value) {
 	object *obj;
 	object *element;
     
-	/* search for they symbol in the symbol table */
+	/* search for the symbol in the symbol table */
 	element = symbol_table;
 	while (!is_the_empty_list(element)) {
 		if (strcmp(car(element)->data.symbol.value, value) == 0) {
@@ -521,6 +521,11 @@ object *or_proc(object *arguments)
 		car(cdr(arguments))->data.boolean.value);
 }
 
+object *intern_proc(object *obj)
+{
+	return make_symbol(car(obj)->data.string.value);
+}
+
 
 object *lookup_variable_value(object *var, object *env);
 
@@ -736,6 +741,7 @@ void init(void) {
 	add_procedure("list"    , list_proc);
 
 	add_procedure("eq?", is_eq_proc);
+	add_procedure("intern", intern_proc);
 	/* add_procedure("value", value_proc); */
 }
  
