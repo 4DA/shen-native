@@ -13,7 +13,7 @@
 
 typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
-              COMPOUND_PROC} object_type;
+              COMPOUND_PROC, FREEZE} object_type;
 
 typedef struct object {
 	object_type type;
@@ -47,6 +47,9 @@ typedef struct object {
 			struct object *body;
 			struct object *env;
 		} compound_proc;
+		struct {
+			struct object *exp;
+		} freeze;
 	} data;
 } object;
 
@@ -83,6 +86,7 @@ object *cond_symbol;
 object *else_symbol;
 object *let_symbol;
 object *value_symbol;
+object *freeze_symbol;
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
@@ -196,6 +200,8 @@ object *make_string(char *value) {
 	strcpy(obj->data.string.value, value);
 	return obj;
 }
+
+
 
 char is_string(object *obj) {
 	return obj->type == STRING;
@@ -683,6 +689,7 @@ void init(void) {
 	else_symbol = make_symbol("else");
 	let_symbol = make_symbol("let");
 	value_symbol = make_symbol("value");
+	freeze_symbol = make_symbol("freeze");
     
 	the_empty_environment = the_empty_list;
 
@@ -1030,6 +1037,14 @@ char is_value(object *exp) {
 	return is_tagged_list(exp, value_symbol);
 }
 
+char is_freeze(object *exp) {
+	return is_tagged_list(exp, freeze_symbol);
+}
+
+char is_thaw(object *exp) {
+	return (exp->type == FREEZE);
+}
+
 object *definition_variable(object *exp) {
 	/* if (is_symbol(cadr(exp))) { */
 	/* 	return cadr(exp); */
@@ -1090,11 +1105,11 @@ char is_lambda(object *exp) {
 }
 
 object *lambda_parameters(object *exp) {
-	// shen lambdas have this form:
-	// (lambda s f)
-	// where s is symbol and f is any valid expression
-	// but since current defun code uses multi-parameter lambda
-	// i just handle it here
+	 /* shen lambdas have this form: */
+	 /* (lambda s f) */
+	 /* where s is symbol and f is any valid expression */
+	 /* but since current defun code uses multi-parameter lambda */
+	 /* i just handle it here */
 	
 	if (is_symbol(cadr(exp)))
 		return cons(cadr(exp), the_empty_list);
@@ -1270,6 +1285,11 @@ object *let_to_application(object *exp) {
 		let_arguments(exp));
 }
 
+object *make_freeze(object *exp, object *env) {
+	return make_compound_proc(the_empty_list,
+							  exp,
+							  env);
+}
 
 object *eval(object *exp, object *env, unsigned long flags);
 
@@ -1380,6 +1400,14 @@ tailcall:
 	else if (is_value(exp)) {
 		return lookup_variable_value(binding_argument(exp), env);
 	}
+	else if (is_freeze(exp)) {
+		return make_freeze(exp, env);
+	}
+	/* else if(is_thaw(exp)) { */
+	/* 	exp=exp->data.freeze.exp; */
+	/* 	goto tailcall; */
+	/* } */
+
 	else if (is_application(exp)) {
 		printf("eval: application\n");
 
