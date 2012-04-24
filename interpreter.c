@@ -8,12 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <setjmp.h>
 
 /**************************** MODEL ******************************/
 
 typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
-              COMPOUND_PROC, FREEZE} object_type;
+              COMPOUND_PROC, FREEZE, JMP_ENV} object_type;
 
 typedef struct object {
 	object_type type;
@@ -50,8 +51,17 @@ typedef struct object {
 		struct {
 			struct object *exp;
 		} freeze;
+		struct {
+			jmp_buf jmp_env;
+			struct object *exception;
+		} context;
+		struct {
+			char *msg;
+		} exception;
 	} data;
 } object;
+
+
 
 /* EF - eval flag */
 #define EF_NULL 0
@@ -87,9 +97,12 @@ object *else_symbol;
 object *let_symbol;
 object *value_symbol;
 object *freeze_symbol;
+object *trap_error_symbol;
+object *simple_error_symbol;
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
+object *jmp_envs;
 
 object *cons(object *car, object *cdr);
 object *car(object *pair);
@@ -277,6 +290,12 @@ object *make_primitive_proc(
 	obj = alloc_object();
 	obj->type = PRIMITIVE_PROC;
 	obj->data.primitive_proc.fn = fn;
+	return obj;
+}
+
+object *make_jmp_buf() {
+	object *obj = alloc_object();
+	obj->type = JMP_ENV;
 	return obj;
 }
 
@@ -673,6 +692,7 @@ object *setup_environment(void) {
 void init(void) {
 	the_empty_list = alloc_object();
 	the_empty_list->type = THE_EMPTY_LIST;
+	jmp_envs = the_empty_list;
 
 	false = alloc_object();
 	false->type = BOOLEAN;
@@ -695,6 +715,9 @@ void init(void) {
 	let_symbol = make_symbol("let");
 	value_symbol = make_symbol("value");
 	freeze_symbol = make_symbol("freeze");
+	trap_error_symbol = make_symbol("trap-error");
+	simple_error_symbol = make_symbol("simple-error");
+	
     
 	the_empty_environment = the_empty_list;
 
@@ -1051,6 +1074,15 @@ char is_thaw(object *exp) {
 	return (exp->type == FREEZE);
 }
 
+char is_trap_error(object *exp) {
+	return is_tagged_list(exp, trap_error_symbol);
+}
+
+char is_simple_error(object *exp) {
+	return is_tagged_list(exp, simple_error_symbol);
+}
+
+
 object *definition_variable(object *exp) {
 	/* if (is_symbol(cadr(exp))) { */
 	/* 	return cadr(exp); */
@@ -1297,6 +1329,19 @@ object *make_freeze(object *exp, object *env) {
 							  env);
 }
 
+object *trap_func(object *exp) {
+	return car(cdr(exp));
+}
+
+object *catch_func(object *exp) {
+	return car(cdr(cdr(exp)));
+}
+
+		/* object *trap_func(object *exp) { */
+		/* return car(cdr(exp); */
+		/* 	   } */
+			
+		
 object *eval(object *exp, object *env, unsigned long flags);
 
 object *list_of_values(object *exps, object *env, unsigned long flags) {
@@ -1409,10 +1454,23 @@ tailcall:
 	else if (is_freeze(exp)) {
 		return make_freeze(exp, env);
 	}
-	/* else if(is_thaw(exp)) { */
-	/* 	exp=exp->data.freeze.exp; */
-	/* 	goto tailcall; */
-	/* } */
+	else if(is_trap_error(exp)) {
+		object *new_jmp_buf = make_jmp_buf();
+		jmp_envs = cons(new_jmp_buf, jmp_envs);
+
+		if (setjmp(new_jmp_buf->data.context.jmp_env) != 0) {
+			/* non local return here. exception happened */
+			/* apply catch function to exception */
+			return eval(cons(catch_func(exp), new_jmp_buf->data.context.exception), env, 0);
+		} else {
+			/* normal return */
+			/* call supervised function */
+			return eval(trap_func(exp), env, NULL);
+		}
+	}
+	else if(is_simple_error(exp)) {
+
+	}
 
 	else if (is_application(exp)) {
 		printf("eval: application\n");
