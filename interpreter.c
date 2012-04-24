@@ -14,7 +14,7 @@
 
 typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
-              COMPOUND_PROC, FREEZE, JMP_ENV} object_type;
+              COMPOUND_PROC, FREEZE, JMP_ENV, EXCEPTION} object_type;
 
 typedef struct object {
 	object_type type;
@@ -158,6 +158,7 @@ object *make_argument(char *value)
 {
 	object *obj = make_symbol(value);
 	obj->data.symbol.is_argument = 1;
+	return obj;
 }
 
 char is_symbol(object *obj) {
@@ -296,6 +297,13 @@ object *make_primitive_proc(
 object *make_jmp_buf() {
 	object *obj = alloc_object();
 	obj->type = JMP_ENV;
+	return obj;
+}
+
+object *make_exception(char *str) {
+	object *obj = alloc_object();
+	obj->type = EXCEPTION;
+	obj->data.exception.msg = str;
 	return obj;
 }
 
@@ -1082,6 +1090,9 @@ char is_simple_error(object *exp) {
 	return is_tagged_list(exp, simple_error_symbol);
 }
 
+char is_exception(object *exp) {
+	return exp->type == EXCEPTION;
+}
 
 object *definition_variable(object *exp) {
 	/* if (is_symbol(cadr(exp))) { */
@@ -1385,7 +1396,6 @@ object *eval_definition(object *exp, object *env) {
 	return ok_symbol;
 }
 
-
 object *eval(object *exp, object *env, unsigned long flags) {
 	object *procedure;
 	object *arguments;
@@ -1461,15 +1471,23 @@ tailcall:
 		if (setjmp(new_jmp_buf->data.context.jmp_env) != 0) {
 			/* non local return here. exception happened */
 			/* apply catch function to exception */
-			return eval(cons(catch_func(exp), new_jmp_buf->data.context.exception), env, 0);
+			return eval(cons(catch_func(exp), cons(new_jmp_buf->data.context.exception,the_empty_list)), env, 0);
 		} else {
 			/* normal return */
 			/* call supervised function */
-			return eval(trap_func(exp), env, NULL);
+			return eval(trap_func(exp), env, 0);
 		}
 	}
 	else if(is_simple_error(exp)) {
-
+		if (jmp_envs == the_empty_list)
+			return make_exception(car(cdr(exp))->data.string.value);
+		else {
+			car(jmp_envs)->data.context.exception = make_exception(cdr(exp)->data.string.value);
+			longjmp(car(jmp_envs)->data.context.jmp_env, 1);
+		}
+	}
+	else if(is_exception(exp)) {
+		return make_string(exp->data.exception.msg);
 	}
 
 	else if (is_application(exp)) {
@@ -1548,19 +1566,19 @@ void print(object *obj) {
 	char *str;
     
 	switch (obj->type) {
-        case THE_EMPTY_LIST:
+	case THE_EMPTY_LIST:
 		printf("()");
 		break;
-        case BOOLEAN:
+	case BOOLEAN:
 		printf("#%c", is_false(obj) ? 'f' : 't');
 		break;
-        case SYMBOL:
+	case SYMBOL:
 		printf("%s", obj->data.symbol.value);
 		break;
-        case FIXNUM:
+	case FIXNUM:
 		printf("%ld", obj->data.fixnum.value);
 		break;
-        case CHARACTER:
+	case CHARACTER:
 		c = obj->data.character.value;
 		printf("#\\");
 		switch (c) {
@@ -1574,7 +1592,7 @@ void print(object *obj) {
 			putchar(c);
 		}
 		break;
-        case STRING:
+	case STRING:
 		str = obj->data.string.value;
 		putchar('"');
 		while (*str != '\0') {
@@ -1595,21 +1613,25 @@ void print(object *obj) {
 		}
 		putchar('"');
 		break;
-        case PAIR:
+	case PAIR:
 		printf("(");
 		print_pair(obj);
 		printf(")");
 		break;
-        case PRIMITIVE_PROC:
+	case PRIMITIVE_PROC:
 		printf("#<procedure>");
 		break;
-        case COMPOUND_PROC:
+	case COMPOUND_PROC:
 		printf("#<compound-procedure> :");
 		printf("\nparams: \n");
 		print(obj->data.compound_proc.parameters);
 		printf("\nbody: \n");
 		print(obj->data.compound_proc.body);
 		break;
+	case EXCEPTION:
+		printf("#<exception>: %s", obj->data.exception.msg);
+		break;
+			
         default:
 		fprintf(stderr, "cannot print unknown type\n");
 		exit(1);
