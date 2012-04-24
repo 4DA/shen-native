@@ -1482,7 +1482,7 @@ tailcall:
 		if (jmp_envs == the_empty_list)
 			return make_exception(car(cdr(exp))->data.string.value);
 		else {
-			car(jmp_envs)->data.context.exception = make_exception(cdr(exp)->data.string.value);
+			car(jmp_envs)->data.context.exception = make_exception(car(cdr(exp))->data.string.value);
 			longjmp(car(jmp_envs)->data.context.jmp_env, 1);
 		}
 	}
