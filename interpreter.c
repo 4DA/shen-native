@@ -9,6 +9,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <setjmp.h>
+#include <string.h>
 
 /**************************** MODEL ******************************/
 
@@ -544,6 +545,177 @@ object *iscons_proc(object *arguments) {
 	return is_the_empty_list(car(arguments)) ? false : true;
 }
 
+object *pos_proc(object *arguments) {
+	char *str = car (arguments)->data.string.value;
+	int pos = car (cdr (arguments))->data.fixnum.value;
+
+	char *res = malloc(sizeof(char[2]));
+	res[0] = str[pos];
+	res[1] = '\0';
+	return make_string(res);
+}
+
+object *tlstr_proc(object *arguments) {
+	char *str = car (arguments)->data.string.value;
+	return make_string(str+1);
+}
+
+object *cn_proc(object *arguments) {
+	char *str1 = car (arguments)->data.string.value;
+	char *str2 = car (cdr (arguments))->data.string.value;
+
+	int len1 = strlen(str1);
+	int len2 = strlen(str2);
+
+	char *res = malloc(len1+len2+1);
+	strncpy(res, str1, len1);
+	strncat(res, str2, len2);
+	
+	return make_string(res);
+}
+
+object *str_proc(object *arguments) {
+	char *res="print_error";
+	switch(car(arguments)->type) {
+	case FIXNUM:
+		res = malloc(20);
+		sprintf(res, "^%ld^", car(arguments)->data.fixnum.value);
+		break;
+	case SYMBOL:
+		res = malloc(strlen(car(arguments)->data.symbol.value)+1);
+		sprintf(res, "^%s^", car(arguments)->data.symbol.value);
+		break;
+	case STRING:
+		res = malloc(strlen(car(arguments)->data.string.value)+1);
+		sprintf(res, "^%s^", car(arguments)->data.string.value);
+		break;
+	case THE_EMPTY_LIST:
+	case BOOLEAN:
+	case ARGUMENT:
+	case CHARACTER:
+	case PAIR:
+	case PRIMITIVE_PROC:
+	case COMPOUND_PROC:
+	case FREEZE:
+	case JMP_ENV:
+	case EXCEPTION:
+		break;
+	}
+	return make_string(res);
+}
+
+object *str_to_n_proc(object *arguments) {
+	char sym = car(arguments)->data.string.value[0];
+
+	return make_fixnum((int) sym);
+}
+
+/* "(sp)" */
+/* "!" */
+/* "\"" */
+/* "#" */
+/* "$" */
+/* "%" */
+/* "&" */
+/* "'" */
+/* "(" */
+/* ")" */
+/* "*" */
+/* "+" */
+/* "," */
+/* "-" */
+/* "." */
+/* "/" */
+/* "0" */
+/* "1" */
+/* "2" */
+/* "3" */
+/* "4" */
+/* "5" */
+/* "6" */
+/* "7" */
+/* "8" */
+/* "9" */
+/* ":" */
+/* ";" */
+/* "<" */
+/* "=" */
+/* ">" */
+/* "?" */
+/* "@" */
+/* "A" */
+/* "B" */
+/* "C" */
+/* "D" */
+/* "E" */
+/* "F" */
+/* "G" */
+/* "H" */
+/* "I" */
+/* "J" */
+/* "K" */
+/* "L" */
+/* "M" */
+/* "N" */
+/* "O" */
+/* "P" */
+/* "Q" */
+/* "R" */
+/* "S" */
+/* "T" */
+/* "U" */
+/* "V" */
+/* "W" */
+/* "X" */
+/* "Y" */
+/* "Z" */
+/* "[" */
+/* "\\" */
+/* "]" */
+/* "^" */
+/* "_" */
+/* "`" */
+/* "a" */
+/* "b" */
+/* "c" */
+/* "d" */
+/* "e" */
+/* "f" */
+/* "g" */
+/* "h" */
+/* "i" */
+/* "j" */
+/* "k" */
+/* "l" */
+/* "m" */
+/* "n" */
+/* "o" */
+/* "p" */
+/* "q" */
+/* "r" */
+/* "s" */
+/* "t" */
+/* "u" */
+/* "v" */
+/* "w" */
+/* "x" */
+/* "y" */
+/* "z" */
+/* "{" */
+/* "|" */
+/* "}" */
+/* "~" */
+/* "(del)" */
+
+object *n_to_str_proc(object *arguments) {
+	int code = car(arguments)->data.fixnum.value;
+
+	char res[2];
+	res[0] = code;
+	res[1] = '\0';
+	return make_string(res);
+}
+
 
 object *is_eq_proc(object *arguments) {
 	object *obj1;
@@ -841,6 +1013,13 @@ void init(void) {
 	add_procedure("error-to-string", error_to_string_proc);
 
 	add_procedure("type", type_proc);
+
+	add_procedure("pos", pos_proc);
+	add_procedure("tlstr", tlstr_proc);
+	add_procedure("cn", cn_proc);
+	add_procedure("str", str_proc);
+	add_procedure("string->n", str_to_n_proc);
+	add_procedure("n->string", n_to_str_proc);
 
 	
 
