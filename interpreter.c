@@ -506,6 +506,9 @@ object *is_less_than_or_equal_proc(object *arguments) {
 	return true;
 }
 
+object *is_number_proc(object *arguments) {
+	return (car(arguments)->type == FIXNUM) ? true : false;
+}
 
 
 object *cons_proc(object *arguments) {
@@ -801,8 +804,9 @@ void init(void) {
 	add_procedure("="        , is_number_equal_proc);
 	add_procedure("<"        , is_less_than_proc);
 	add_procedure(">"        , is_greater_than_proc);
-	add_procedure("<="        , is_less_than_or_equal_proc);
-	add_procedure(">="        , is_greater_than_or_equal_proc);
+	add_procedure("<="       , is_less_than_or_equal_proc);
+	add_procedure(">="       , is_greater_than_or_equal_proc);
+	add_procedure("number?"  , is_number_proc);
 	
 
 	add_procedure("and"      , and_proc);
