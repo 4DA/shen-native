@@ -534,8 +534,7 @@ object *is_eq_proc(object *arguments) {
 	}
 }
 
-object *and_proc(object *arguments)
-{
+object *and_proc(object *arguments) {
 	return make_boolean(
 		car(arguments)->data.boolean.value && 
 		car(cdr(arguments))->data.boolean.value);
@@ -551,6 +550,11 @@ object *or_proc(object *arguments)
 object *intern_proc(object *obj)
 {
 	return make_symbol(car(obj)->data.string.value);
+}
+
+object *error_to_string_proc(object *obj)
+{
+	return make_string(car(obj)->data.exception.msg);
 }
 
 
@@ -773,6 +777,8 @@ void init(void) {
 
 	add_procedure("eq?", is_eq_proc);
 	add_procedure("intern", intern_proc);
+
+	add_procedure("error-to-string", error_to_string_proc);
 	/* add_procedure("value", value_proc); */
 }
  
