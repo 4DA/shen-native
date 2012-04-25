@@ -596,6 +596,10 @@ object *error_to_string_proc(object *obj)
 	return make_string(car(obj)->data.exception.msg);
 }
 
+object *type_proc(object *obj) {
+	return car(obj);
+}
+
 
 object *lookup_variable_value(object *var, object *env);
 
@@ -823,6 +827,8 @@ void init(void) {
 	add_procedure("intern", intern_proc);
 
 	add_procedure("error-to-string", error_to_string_proc);
+
+	add_procedure("type", type_proc);
 	/* add_procedure("value", value_proc); */
 }
  
