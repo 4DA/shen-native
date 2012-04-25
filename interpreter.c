@@ -540,6 +540,11 @@ object *list_proc(object *arguments) {
 	return arguments;
 }
 
+object *iscons_proc(object *arguments) {
+	return is_the_empty_list(car(arguments)) ? false : true;
+}
+
+
 object *is_eq_proc(object *arguments) {
 	object *obj1;
 	object *obj2;
@@ -823,11 +828,12 @@ void init(void) {
 	add_procedure("or"       , or_proc);
 
 	add_procedure("cons"    , cons_proc);
-	add_procedure("car"     , car_proc);
-	add_procedure("cdr"     , cdr_proc);
+	add_procedure("hd"     , car_proc);
+	add_procedure("tl"     , cdr_proc);
 	add_procedure("set-car!", set_car_proc);
 	add_procedure("set-cdr!", set_cdr_proc);
 	add_procedure("list"    , list_proc);
+	add_procedure("cons?", iscons_proc);
 
 	add_procedure("eq?", is_eq_proc);
 	add_procedure("intern", intern_proc);
@@ -835,6 +841,8 @@ void init(void) {
 	add_procedure("error-to-string", error_to_string_proc);
 
 	add_procedure("type", type_proc);
+
+	
 
 	/* add_procedure("eval-without-macros", (struct object * (*)(struct object *)) eval_without_macros_proc); */
 	/* add_procedure("value", value_proc); */
