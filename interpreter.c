@@ -99,6 +99,7 @@ object *value_symbol;
 object *freeze_symbol;
 object *trap_error_symbol;
 object *simple_error_symbol;
+object *eval_without_macros_symbol;
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
@@ -283,6 +284,8 @@ void set_cdr(object *obj, object* value) {
 #define cddadr(obj) cdr(cdr(car(cdr(obj))))
 #define cdddar(obj) cdr(cdr(cdr(car(obj))))
 #define cddddr(obj) cdr(cdr(cdr(cdr(obj))))
+
+object *eval(object *exp, object *env, unsigned long flags);
 
 object *make_primitive_proc(
 	object *(*fn)(struct object *arguments)) {
@@ -600,6 +603,9 @@ object *type_proc(object *obj) {
 	return car(obj);
 }
 
+/* object *eval_without_macros_proc(object *obj, object *env) { */
+/* 	return eval(obj, env, 0); */
+/* } */
 
 object *lookup_variable_value(object *var, object *env);
 
@@ -772,8 +778,8 @@ void init(void) {
 	freeze_symbol = make_symbol("freeze");
 	trap_error_symbol = make_symbol("trap-error");
 	simple_error_symbol = make_symbol("simple-error");
+	eval_without_macros_symbol = make_symbol("eval-without-macros");
 	
-    
 	the_empty_environment = the_empty_list;
 
 	funcs_env = setup_environment();
@@ -829,6 +835,8 @@ void init(void) {
 	add_procedure("error-to-string", error_to_string_proc);
 
 	add_procedure("type", type_proc);
+
+	/* add_procedure("eval-without-macros", (struct object * (*)(struct object *)) eval_without_macros_proc); */
 	/* add_procedure("value", value_proc); */
 }
  
@@ -1150,6 +1158,10 @@ char is_exception(object *exp) {
 	return exp->type == EXCEPTION;
 }
 
+char is_eval_without_macros(object *exp) {
+	return is_tagged_list(exp, eval_without_macros_symbol);
+}
+
 object *definition_variable(object *exp) {
 	/* if (is_symbol(cadr(exp))) { */
 	/* 	return cadr(exp); */
@@ -1409,7 +1421,7 @@ object *catch_func(object *exp) {
 		/* 	   } */
 			
 		
-object *eval(object *exp, object *env, unsigned long flags);
+
 
 object *list_of_values(object *exps, object *env, unsigned long flags) {
 	if (is_no_operands(exps)) {
@@ -1544,6 +1556,13 @@ tailcall:
 	}
 	else if(is_exception(exp)) {
 		return make_string(exp->data.exception.msg);
+	}
+
+	else if(is_eval_without_macros(exp)) {
+		/* return eval(car(cdr(exp)), env, 0); */
+		/* exp = eval(car(cdr(exp)), env, 0); */
+		return eval(car(cdr(car(cdr(exp)))), env, 0);
+		/* goto tailcall; */
 	}
 
 	else if (is_application(exp)) {
