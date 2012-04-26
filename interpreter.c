@@ -15,7 +15,7 @@
 
 typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
-              COMPOUND_PROC, FREEZE, JMP_ENV, EXCEPTION} object_type;
+              COMPOUND_PROC, FREEZE, JMP_ENV, EXCEPTION, VECTOR} object_type;
 
 typedef struct object {
 	object_type type;
@@ -59,6 +59,10 @@ typedef struct object {
 		struct {
 			char *msg;
 		} exception;
+		struct {
+			struct object **vec;
+			unsigned int limit;
+		} vector;
 	} data;
 } object;
 
@@ -101,6 +105,7 @@ object *freeze_symbol;
 object *trap_error_symbol;
 object *simple_error_symbol;
 object *eval_without_macros_symbol;
+object *fail_symbol;
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
@@ -599,6 +604,7 @@ object *str_proc(object *arguments) {
 	case FREEZE:
 	case JMP_ENV:
 	case EXCEPTION:
+	case VECTOR:
 		break;
 	}
 	return make_string(res);
@@ -610,103 +616,6 @@ object *str_to_n_proc(object *arguments) {
 	return make_fixnum((int) sym);
 }
 
-/* "(sp)" */
-/* "!" */
-/* "\"" */
-/* "#" */
-/* "$" */
-/* "%" */
-/* "&" */
-/* "'" */
-/* "(" */
-/* ")" */
-/* "*" */
-/* "+" */
-/* "," */
-/* "-" */
-/* "." */
-/* "/" */
-/* "0" */
-/* "1" */
-/* "2" */
-/* "3" */
-/* "4" */
-/* "5" */
-/* "6" */
-/* "7" */
-/* "8" */
-/* "9" */
-/* ":" */
-/* ";" */
-/* "<" */
-/* "=" */
-/* ">" */
-/* "?" */
-/* "@" */
-/* "A" */
-/* "B" */
-/* "C" */
-/* "D" */
-/* "E" */
-/* "F" */
-/* "G" */
-/* "H" */
-/* "I" */
-/* "J" */
-/* "K" */
-/* "L" */
-/* "M" */
-/* "N" */
-/* "O" */
-/* "P" */
-/* "Q" */
-/* "R" */
-/* "S" */
-/* "T" */
-/* "U" */
-/* "V" */
-/* "W" */
-/* "X" */
-/* "Y" */
-/* "Z" */
-/* "[" */
-/* "\\" */
-/* "]" */
-/* "^" */
-/* "_" */
-/* "`" */
-/* "a" */
-/* "b" */
-/* "c" */
-/* "d" */
-/* "e" */
-/* "f" */
-/* "g" */
-/* "h" */
-/* "i" */
-/* "j" */
-/* "k" */
-/* "l" */
-/* "m" */
-/* "n" */
-/* "o" */
-/* "p" */
-/* "q" */
-/* "r" */
-/* "s" */
-/* "t" */
-/* "u" */
-/* "v" */
-/* "w" */
-/* "x" */
-/* "y" */
-/* "z" */
-/* "{" */
-/* "|" */
-/* "}" */
-/* "~" */
-/* "(del)" */
-
 object *n_to_str_proc(object *arguments) {
 	int code = car(arguments)->data.fixnum.value;
 
@@ -715,7 +624,6 @@ object *n_to_str_proc(object *arguments) {
 	res[1] = '\0';
 	return make_string(res);
 }
-
 
 object *is_eq_proc(object *arguments) {
 	object *obj1;
@@ -778,6 +686,51 @@ object *error_to_string_proc(object *obj)
 
 object *type_proc(object *obj) {
 	return car(obj);
+}
+
+object *make_vector(unsigned int length) {
+	object *obj;
+	int i;
+
+	obj = alloc_object();
+	obj->type = VECTOR;
+	obj->data.vector.vec = malloc((length+1)*sizeof(struct object*));
+	obj->data.vector.limit = length;
+
+	for (i = 1; i <= length; i++)
+		obj->data.vector.vec[i] = fail_symbol;
+		
+	obj->data.vector.vec[0] = (struct object*) 0;
+	if (obj->data.vector.vec == NULL) {
+		fprintf(stderr, "out of memory\n");
+		exit(1);
+	}
+	return obj;
+}
+
+
+object *absvector_proc(object *obj) {
+	return make_vector(car(obj)->data.fixnum.value);
+}
+
+object *is_absvector_proc(object *obj) {
+	return (car(obj)->type == VECTOR) ? true : false;
+}
+
+object *get_vec_elem_proc(object *obj) {
+	object *vec = car(obj);
+	unsigned long ind = car(cdr(obj))->data.fixnum.value;
+
+	return vec->data.vector.vec[ind];
+}
+
+
+object *set_vec_elem_proc(object *obj) {
+	object *vec = car(obj);
+	unsigned long ind = car(cdr(obj))->data.fixnum.value;
+	object *newval = car(cdr(cdr(obj)));
+	vec->data.vector.vec[ind] = newval;
+	return vec;
 }
 
 /* object *eval_without_macros_proc(object *obj, object *env) { */
@@ -956,6 +909,7 @@ void init(void) {
 	trap_error_symbol = make_symbol("trap-error");
 	simple_error_symbol = make_symbol("simple-error");
 	eval_without_macros_symbol = make_symbol("eval-without-macros");
+	fail_symbol = make_symbol("fail!");
 	
 	the_empty_environment = the_empty_list;
 
@@ -1021,7 +975,10 @@ void init(void) {
 	add_procedure("string->n", str_to_n_proc);
 	add_procedure("n->string", n_to_str_proc);
 
-	
+	add_procedure("absvector", absvector_proc);
+	add_procedure("absvector?",is_absvector_proc);
+	add_procedure("address->", set_vec_elem_proc);
+	add_procedure("<-address", get_vec_elem_proc);
 
 	/* add_procedure("eval-without-macros", (struct object * (*)(struct object *)) eval_without_macros_proc); */
 	/* add_procedure("value", value_proc); */
@@ -1826,6 +1783,7 @@ void print_pair(object *pair) {
 void print(object *obj) {
 	char c;
 	char *str;
+	int i;
     
 	switch (obj->type) {
 	case THE_EMPTY_LIST:
@@ -1893,6 +1851,17 @@ void print(object *obj) {
 	case EXCEPTION:
 		printf("#<exception>: %s", obj->data.exception.msg);
 		break;
+
+	case VECTOR:
+		printf ("<");
+		for (i = 1; i <= obj->data.vector.limit; i++) {
+			printf(" ");
+			print(obj->data.vector.vec[i]);
+		}
+		
+		printf (" >");
+		break;
+				
 			
         default:
 		fprintf(stderr, "cannot print unknown type\n");
