@@ -239,6 +239,9 @@ char is_double(object *obj) {
 	return obj->type == DOUBLE;
 }
 
+char is_number(object *obj) {
+	return (obj->type == DOUBLE) || (obj->type == FIXNUM);
+}
 
 object *make_character(char value) {
 	object *obj;
@@ -427,7 +430,7 @@ object *integer_to_char_proc(object *arguments) {
 object *number_to_string_proc(object *arguments) {
 	char buffer[100];
 
-	sprintf(buffer, "%ld", (car(arguments))->data.fixnum.value);
+	sprintf(buffer, "%lld", (car(arguments))->data.fixnum.value);
 	return make_string(buffer);
 }
 
@@ -442,9 +445,13 @@ object *symbol_to_string_proc(object *arguments) {
 object *string_to_symbol_proc(object *arguments) {
 	return make_symbol((car(arguments))->data.string.value);
 }
+void throw_error(char *msg);
 
 object *add_proc(object *arguments) {
-	long result = 0;
+	double fresult = 0.0;
+	int64_t result = 0;
+	object *obj;
+	char isdres = 0;
 
 	printf("--> addproc ( ");
 	print(arguments);
@@ -452,11 +459,30 @@ object *add_proc(object *arguments) {
 	/* printf("\n"); */
 	/* printf("arg: ");     */
 	while (!is_the_empty_list(arguments)) {
-		/* printf("%d(%d)[%s] ", (car(arguments))->data.fixnum.value, (car(arguments))->type, (car(arguments))->data.symbol.value);     */
-		result += (car(arguments))->data.fixnum.value;
+		obj = car(arguments);
+		
+			if (is_double(obj)) {
+				if (!isdres) {
+					isdres = 1;
+					fresult = result;
+				}
+				
+				fresult += obj->data.double_num.value;
+			}
+			else if(is_fixnum(obj))
+				if (!isdres)
+					result += obj->data.fixnum.value;
+				else
+					fresult += obj->data.fixnum.value;
+			else
+				throw_error("#<PROCEDURE +> error: not a number");
+
 		arguments = cdr(arguments);
 	}
-	return make_fixnum(result);
+	if (isdres)
+		return make_double(fresult);
+	else
+		return make_fixnum(result);
 }
 
 object *sub_proc(object *arguments) {
@@ -640,7 +666,7 @@ object *str_proc(object *arguments) {
 	switch(car(arguments)->type) {
 	case FIXNUM:
 		res = malloc(20);
-		sprintf(res, "^%ld^", car(arguments)->data.fixnum.value);
+		sprintf(res, "^%lld^", car(arguments)->data.fixnum.value);
 		break;
 	case DOUBLE:
 		res = malloc(20);
@@ -2058,7 +2084,7 @@ void print(object *obj) {
 		printf("%s", obj->data.symbol.value);
 		break;
 	case FIXNUM:
-		printf("%ld", obj->data.fixnum.value);
+		printf("%lld", obj->data.fixnum.value);
 		break;
 	case DOUBLE:
 		printf("%lf", obj->data.double_num.value);
