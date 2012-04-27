@@ -852,6 +852,9 @@ object *n_to_str_proc(object *arguments) {
 	return make_string(res);
 }
 
+char eq_vectors(object *obj1, object *obj2);
+char eq_pairs(object *obj1, object *obj2);
+
 object *is_eq_proc(object *arguments) {
 	object *obj1;
 	object *obj2;
@@ -900,7 +903,18 @@ object *is_eq_proc(object *arguments) {
 				obj2->data.boolean.value) ?
 			true : false;
 
+	case VECTOR:
+		return eq_vectors(obj1, obj2) ? true : false;
 		break;
+
+	case PAIR:
+		return eq_pairs(obj1, obj2) ? true : false;
+		break;
+
+	case FILE_STREAM:
+		return false;
+		break;
+
         default:
 		return (obj1 == obj2) ? true : false;
 	}
@@ -978,7 +992,22 @@ object *set_vec_elem_proc(object *obj) {
 	return vec;
 }
 
+char eq_vectors(object *obj1, object *obj2) {
+	int i;
+	if (obj1->data.vector.limit != obj2->data.vector.limit)
+		return 0;
 
+	for (i = 1; i <= obj1->data.vector.limit; i++)
+		if (false == is_eq_proc ( cons (obj1->data.vector.vec[i], cons(obj2->data.vector.vec[i], the_empty_list))))
+			return 0;
+
+	return 1;
+}
+
+char eq_pairs(object *obj1, object *obj2) {
+	return (is_eq_proc(cons(car(obj1), cons(car(obj2),the_empty_list)))) &&
+		(is_eq_proc(cons(cdr(obj1), cons(cdr(obj2), the_empty_list))));
+}
 
 void throw_error(char *msg) {
 	char *exp_msg = strdup(msg);
@@ -1164,7 +1193,7 @@ object *extend_environment(object *vars, object *vals,
 }
 
 object *lookup_variable_value(object *var, object *env) {
-	printf("-->in lookup_variable_value\n");
+	/* printf("-->in lookup_variable_value\n"); */
 	object *frame;
 	object *vars;
 	object *vals;
@@ -2038,9 +2067,9 @@ object *eval_assignment(object *exp, object *env, unsigned long flags) {
 	/* long flags = EF_ARGUMENTS; */
 	/* printf("EF is %lu\n", !(~flags & EF_ARGUMENTS)); */
 
-	printf("in ev_asgn: vars_env = ");
-	print(vars_env);
-	printf("\n");
+	/* printf("in ev_asgn: vars_env = "); */
+	/* print(vars_env); */
+	/* printf("\n"); */
 
 	return ok_symbol;
 }
@@ -2060,25 +2089,25 @@ object *eval(object *exp, object *env, unsigned long flags) {
 	object *procedure;
 	object *arguments;
 
-	printf("-->eval\n");
+	/* printf("-->eval\n"); */
 tailcall:
-	print(exp);
-	printf("\n");
-	printf("-->tailcall\n");
-	printf("env = ");
-	print(env);
-	printf("\n");
+	/* print(exp); */
+	/* printf("\n"); */
+	/* printf("-->tailcall\n"); */
+	/* printf("env = "); */
+	/* print(env); */
+	/* printf("\n"); */
 	
 	if (is_self_evaluating(exp, flags)) {
-		printf("exp: ");
-		print(exp);
-		printf("\n is self-eval (flags = %lu )\n", flags);
+		/* printf("exp: "); */
+		/* print(exp); */
+		/* printf("\n is self-eval (flags = %lu )\n", flags); */
 		return exp;
 	}
 	else if (is_variable(exp)) {
-		printf("exp: ");
-		print(exp);
-		printf("\n is variable\n");
+		/* printf("exp: "); */
+		/* print(exp); */
+		/* printf("\n is variable\n"); */
 		return lookup_variable_value(exp, env);
 	}
 	else if (is_quoted(exp)) {
@@ -2158,7 +2187,7 @@ tailcall:
 	}
 
 	else if (is_application(exp)) {
-		printf("eval: application\n");
+		/* printf("eval: application\n"); */
 
 		if (!(is_lambda(operator(exp)))
 			&& is_symbol(operator(exp)))
@@ -2290,10 +2319,10 @@ void print(object *obj) {
 		printf(")");
 		break;
 	case PRIMITIVE_PROC:
-		printf("#<procedure>");
+		printf("#<PRIM PROCEDURE>");
 		break;
 	case COMPOUND_PROC:
-		printf("#<compound-procedure> :");
+		printf("#<PROCEDURE> :");
 		printf("\nparams: \n");
 		print(obj->data.compound_proc.parameters);
 		printf("\nbody: \n");
