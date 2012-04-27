@@ -1113,7 +1113,7 @@ object *get_time_proc(object *args) {
 		int64_t diff = ntime-rtime;
 		rtime = ntime;
 		
-		return make_fixnum(diff);
+		return make_double(diff/1000000.0);
 	}
 	else
 		throw_error ("unknown input to get-time");
