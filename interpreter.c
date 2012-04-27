@@ -1005,8 +1005,8 @@ char eq_vectors(object *obj1, object *obj2) {
 }
 
 char eq_pairs(object *obj1, object *obj2) {
-	return (is_eq_proc(cons(car(obj1), cons(car(obj2),the_empty_list)))) &&
-		(is_eq_proc(cons(cdr(obj1), cons(cdr(obj2), the_empty_list))));
+	return (true == is_eq_proc(cons(car(obj1), cons(car(obj2),the_empty_list)))) &&
+		(true == is_eq_proc(cons(cdr(obj1), cons(cdr(obj2), the_empty_list))));
 }
 
 void throw_error(char *msg) {
