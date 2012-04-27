@@ -19,7 +19,7 @@
 
 /**************************** MODEL ******************************/
 
-typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
+typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM, DOUBLE,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
               COMPOUND_PROC, FREEZE, JMP_ENV, EXCEPTION, VECTOR, FILE_STREAM} object_type;
 
@@ -41,6 +41,10 @@ typedef struct object {
 			/* long value; */
 			int64_t value;
 		} fixnum;
+		struct {
+			/* long value; */
+			double value;
+		} double_num;
 		struct {
 			char value;
 			/* int64_t value; */
@@ -212,6 +216,16 @@ object *make_fixnum(long value) {
 	return obj;
 }
 
+object *make_double(double value) {
+	object *obj;
+
+	obj = alloc_object();
+	obj->type = DOUBLE;
+	obj->data.double_num.value = value;
+	return obj;
+}
+
+
 object *make_boolean(char value) {
 	object *obj = (value) ? true : false;
 	return obj;
@@ -220,6 +234,11 @@ object *make_boolean(char value) {
 char is_fixnum(object *obj) {
 	return obj->type == FIXNUM;
 }
+
+char is_double(object *obj) {
+	return obj->type == DOUBLE;
+}
+
 
 object *make_character(char value) {
 	object *obj;
@@ -622,6 +641,10 @@ object *str_proc(object *arguments) {
 	case FIXNUM:
 		res = malloc(20);
 		sprintf(res, "^%ld^", car(arguments)->data.fixnum.value);
+		break;
+	case DOUBLE:
+		res = malloc(20);
+		sprintf(res, "^%lf^", car(arguments)->data.double_num.value);
 		break;
 	case SYMBOL:
 		res = malloc(strlen(car(arguments)->data.symbol.value)+1);
@@ -1328,6 +1351,12 @@ object *read(FILE *in) {
 	short sign = 1;
 	int i;
 	long num = 0;
+	double decim = 0;
+	double nd;
+	float deco = 1.0;
+	double fnum;
+	
+	char is_decim = 0;
 #define BUFFER_MAX 1000
 	char buffer[BUFFER_MAX];
 
@@ -1361,9 +1390,29 @@ object *read(FILE *in) {
 		while (isdigit(c = getc(in))) {
 			num = (num * 10) + (c - '0');
 		}
-		num *= sign;
+		if(c == '.') {
+			if (is_decim == 1) {
+				fprintf(stderr, "error reading floating point number\n");
+				exit(1);
+			}
+				
+			is_decim = 1;
+
+			while (isdigit(c = getc(in))) {
+				nd = (c - '0')/(deco *= 10.0);
+				decim = decim + nd;
+			}
+		}
+		
+		if (decim != 0)
+			fnum = (num + decim) * sign;
+		else
+			num *= sign;
 		if (is_delimiter(c)) {
 			ungetc(c, in);
+
+			if (decim != 0)
+				return make_double(fnum);
 			return make_fixnum(num);
 		}
 		else {
@@ -1445,6 +1494,7 @@ object *read(FILE *in) {
 char is_self_evaluating(object *exp, unsigned long flags) {
 	return is_boolean(exp)   ||
 		is_fixnum(exp)    ||
+		is_double(exp) ||
 		is_character(exp) ||
 		(is_symbol(exp) && (!is_argument(exp)) && (exp->data.symbol.is_func==0)) ||
 		is_string(exp) ||
@@ -2009,6 +2059,9 @@ void print(object *obj) {
 		break;
 	case FIXNUM:
 		printf("%ld", obj->data.fixnum.value);
+		break;
+	case DOUBLE:
+		printf("%lf", obj->data.double_num.value);
 		break;
 	case CHARACTER:
 		c = obj->data.character.value;
