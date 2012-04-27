@@ -10,12 +10,17 @@
 #include <ctype.h>
 #include <setjmp.h>
 #include <string.h>
+#include <errno.h>
+
 
 /**************************** MODEL ******************************/
 
 typedef enum {THE_EMPTY_LIST, BOOLEAN, SYMBOL, ARGUMENT, FIXNUM,
               CHARACTER, STRING, PAIR, PRIMITIVE_PROC,
-              COMPOUND_PROC, FREEZE, JMP_ENV, EXCEPTION, VECTOR} object_type;
+              COMPOUND_PROC, FREEZE, JMP_ENV, EXCEPTION, VECTOR, FILE_STREAM} object_type;
+
+typedef enum {FILE_IN, FILE_OUT} fstream_type;
+
 
 typedef struct object {
 	object_type type;
@@ -63,10 +68,16 @@ typedef struct object {
 			struct object **vec;
 			unsigned int limit;
 		} vector;
+		struct {
+			FILE *fd;
+			char *path;
+			fstream_type type;
+		} file_stream;
+
 	} data;
 } object;
 
-
+char *strdup(const char *s);
 
 /* EF - eval flag */
 #define EF_NULL 0
@@ -106,6 +117,11 @@ object *trap_error_symbol;
 object *simple_error_symbol;
 object *eval_without_macros_symbol;
 object *fail_symbol;
+
+object *in_symbol;
+object *out_symbol; 
+object *file_symbol;
+
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
@@ -219,6 +235,17 @@ object *make_string(char *value) {
 		exit(1);
 	}
 	strcpy(obj->data.string.value, value);
+	return obj;
+}
+
+object *make_file_stream(FILE *fd, const char *path, fstream_type fst) {
+	object *obj;
+	obj = alloc_object();
+	obj->type = FILE_STREAM;
+	obj->data.file_stream.fd = fd;
+	obj->data.file_stream.path = strdup(path);
+	obj->data.file_stream.type = fst;
+
 	return obj;
 }
 
@@ -605,6 +632,7 @@ object *str_proc(object *arguments) {
 	case JMP_ENV:
 	case EXCEPTION:
 	case VECTOR:
+	case FILE_STREAM:
 		break;
 	}
 	return make_string(res);
@@ -732,6 +760,85 @@ object *set_vec_elem_proc(object *obj) {
 	vec->data.vector.vec[ind] = newval;
 	return vec;
 }
+
+
+
+void throw_error(char *msg) {
+	char *exp_msg = strdup(msg);
+	car(jmp_envs)->data.context.exception = make_exception(exp_msg);
+	longjmp(car(jmp_envs)->data.context.jmp_env, 1);
+}
+
+object *open_proc(object *args) {
+	object *type = car(args);
+	object *path_obj = car(cdr(args));
+	object *dir_obj = car(cdr(cdr(args)));
+	FILE *fd;
+	fstream_type fst;
+
+	if (type != file_symbol) {
+		return NULL;
+	/* TODO: throw error */
+	}
+
+	if (dir_obj == in_symbol) {
+		fd = fopen(path_obj->data.string.value, "r");
+		fst = FILE_IN;
+	}
+	else if (dir_obj == out_symbol) {
+		fd = fopen(path_obj->data.string.value, "w");
+		fst = FILE_OUT;
+	}
+	else {
+		return NULL;
+		/* TODO: throw error */
+	}
+
+	if (fd == NULL) {
+		throw_error(strerror(errno));
+	}
+
+	return make_file_stream(fd, path_obj->data.string.value, fst);
+}
+
+object *close_proc(object *args) {
+	object *obj = car(args);
+	fclose(obj->data.file_stream.fd);
+
+	return the_empty_list;
+}
+
+object *read_byte_proc(object *args) {
+	FILE *fd = car(args)->data.file_stream.fd;
+	char sym;
+	int ret = fread(&sym, 1, 1, fd);
+
+	if (!ret) {
+		if (feof(fd))
+			sym = -1;
+		if (ferror(fd))
+			throw_error("file read error");
+	}
+
+	return make_fixnum(sym);
+}
+
+object *pr_proc(object *args) {
+	char *str = car(args)->data.string.value;
+	FILE *fd = car(cdr(args))->data.file_stream.fd;
+
+	int len = strlen(str);
+	int ret = fwrite(str, 1, len, fd);
+
+	if (len != 0 && ret == 0) {
+		if (ferror(fd)) {
+			throw_error("file write error");
+		}
+	}
+	
+	return car(args);
+}
+
 
 /* object *eval_without_macros_proc(object *obj, object *env) { */
 /* 	return eval(obj, env, 0); */
@@ -910,6 +1017,10 @@ void init(void) {
 	simple_error_symbol = make_symbol("simple-error");
 	eval_without_macros_symbol = make_symbol("eval-without-macros");
 	fail_symbol = make_symbol("fail!");
+
+	in_symbol = make_symbol("in");
+	out_symbol = make_symbol("out");
+	file_symbol = make_symbol("file");
 	
 	the_empty_environment = the_empty_list;
 
@@ -979,6 +1090,52 @@ void init(void) {
 	add_procedure("absvector?",is_absvector_proc);
 	add_procedure("address->", set_vec_elem_proc);
 	add_procedure("<-address", get_vec_elem_proc);
+
+	add_procedure("open", open_proc);
+	add_procedure("pr", pr_proc);
+	add_procedure("close", close_proc);
+	add_procedure("read-byte", read_byte_proc);
+	
+
+	char *home_dir="";
+	
+	vars_env = extend_environment(
+		cons(make_symbol("*home-directory*"), the_empty_list),
+		cons(make_string(home_dir), the_empty_list),
+		vars_env);
+
+#define IMP_LANG "ANSI C99"
+#define IMP_PORT "native"
+#define IMP_VERSION "0.1"
+#define IMP_PORTERS "dca"
+#define IMP_IMPL "glibc"
+
+	vars_env = extend_environment(
+		cons(make_symbol("*language*"), the_empty_list),
+		cons(make_string(IMP_LANG), the_empty_list),
+		vars_env);
+
+	vars_env = extend_environment(
+		cons(make_symbol("*port*"), the_empty_list),
+		cons(make_string(IMP_PORT), the_empty_list),
+		vars_env);
+
+	vars_env = extend_environment(
+		cons(make_symbol("*version*"), the_empty_list),
+		cons(make_string(IMP_VERSION), the_empty_list),
+		vars_env);
+
+	vars_env = extend_environment(
+		cons(make_symbol("*porters*"), the_empty_list),
+		cons(make_string(IMP_PORTERS), the_empty_list),
+		vars_env);
+
+	vars_env = extend_environment(
+		cons(make_symbol("*implementation*"), the_empty_list),
+		cons(make_string(IMP_IMPL), the_empty_list),
+		vars_env);
+
+	
 
 	/* add_procedure("eval-without-macros", (struct object * (*)(struct object *)) eval_without_macros_proc); */
 	/* add_procedure("value", value_proc); */
@@ -1861,7 +2018,13 @@ void print(object *obj) {
 		
 		printf (" >");
 		break;
-				
+
+	case FILE_STREAM:
+		printf ("#<%s FILE STREAM \"%s\">",
+				obj->data.file_stream.type == FILE_IN ? "INPUT":"OUTPUT",
+				obj->data.file_stream.path
+			);
+		break;
 			
         default:
 		fprintf(stderr, "cannot print unknown type\n");
