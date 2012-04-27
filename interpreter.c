@@ -11,6 +11,10 @@
 #include <setjmp.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <stdint.h>
+
 
 
 /**************************** MODEL ******************************/
@@ -34,10 +38,12 @@ typedef struct object {
 			char is_func;
 		} symbol;
 		struct {
-			long value;
+			/* long value; */
+			int64_t value;
 		} fixnum;
 		struct {
 			char value;
+			/* int64_t value; */
 		} character;
 		struct {
 			char *value;
@@ -122,10 +128,14 @@ object *in_symbol;
 object *out_symbol; 
 object *file_symbol;
 
+object *run_symbol;
+
 object *the_empty_environment;
 object *funcs_env;
 object *vars_env;
 object *jmp_envs;
+
+
 
 object *cons(object *car, object *cdr);
 object *car(object *pair);
@@ -839,6 +849,48 @@ object *pr_proc(object *args) {
 	return car(args);
 }
 
+#define _POSIX
+
+int64_t timeval_to_usec( const struct timeval* tv )
+{
+	return( (int64_t)tv->tv_sec * 1000000 + tv->tv_usec ) ;
+}
+
+object *get_time_proc(object *args) {
+/* #ifdef 	_POSIX */
+	struct rusage usage;
+	int ret;
+
+	static int64_t rtime; /* TODO: make it reside in TLS */
+
+	if (car(args) == run_symbol) {
+
+		ret = getrusage(RUSAGE_SELF, &usage);
+
+		if (ret == -1)
+			throw_error("cannot get cpu resource usage");
+
+		int64_t ntime =
+			timeval_to_usec(&usage.ru_utime) +
+			timeval_to_usec(&usage.ru_stime);
+		
+		int64_t diff = ntime-rtime;
+		rtime = ntime;
+		
+		return make_fixnum(diff);
+	}
+	else
+		throw_error ("unknown input to get-time");
+
+	return make_fixnum(0);
+/* #endif */
+	
+/* #ifdef _WIN32 */
+/* 	return make_fixnum(0); */
+/* #endif */
+
+}
+
 
 /* object *eval_without_macros_proc(object *obj, object *env) { */
 /* 	return eval(obj, env, 0); */
@@ -1021,6 +1073,8 @@ void init(void) {
 	in_symbol = make_symbol("in");
 	out_symbol = make_symbol("out");
 	file_symbol = make_symbol("file");
+
+	run_symbol = make_symbol("run");
 	
 	the_empty_environment = the_empty_list;
 
@@ -1095,7 +1149,8 @@ void init(void) {
 	add_procedure("pr", pr_proc);
 	add_procedure("close", close_proc);
 	add_procedure("read-byte", read_byte_proc);
-	
+
+	add_procedure("get-time", get_time_proc);
 
 	char *home_dir="";
 	
