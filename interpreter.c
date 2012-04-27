@@ -486,24 +486,164 @@ object *add_proc(object *arguments) {
 }
 
 object *sub_proc(object *arguments) {
-	long result;
+	/* /\* long result; *\/ */
     
-	result = (car(arguments))->data.fixnum.value;
-	while (!is_the_empty_list(arguments = cdr(arguments))) {
-		result -= (car(arguments))->data.fixnum.value;
-	}
-	return make_fixnum(result);
+	/* /\* result = (car(arguments))->data.fixnum.value; *\/ */
+	/* /\* while (!is_the_empty_list(arguments = cdr(arguments))) { *\/ */
+	/* /\* 	result -= (car(arguments))->data.fixnum.value; *\/ */
+	/* /\* } *\/ */
+	/* /\* return make_fixnum(result); *\/ */
+	/* double fresult = 0.0; */
+	/* int64_t result = 0; */
+	/* object *obj; */
+	/* char isdres = 0; */
+
+	/* printf("--> sub_proc ( "); */
+	/* print(arguments); */
+	/* printf(" )\n"); */
+	/* /\* printf("\n"); *\/ */
+	/* /\* printf("arg: ");     *\/ */
+	/* while (!is_the_empty_list(arguments)) { */
+	/* 	obj = car(arguments); */
+		
+	/* 	if (is_double(obj)) { */
+	/* 		if (!isdres) { */
+	/* 			isdres = 1; */
+	/* 			fresult = result; */
+	/* 		} */
+				
+	/* 		fresult -= obj->data.double_num.value; */
+	/* 	} */
+	/* 	else if(is_fixnum(obj)) */
+	/* 		if (!isdres) */
+	/* 			result -= obj->data.fixnum.value; */
+	/* 		else */
+	/* 			fresult -= obj->data.fixnum.value; */
+	/* 	else */
+	/* 		throw_error("#<PROCEDURE -> error: not a number"); */
+
+	/* 	arguments = cdr(arguments); */
+	/* } */
+	/* if (isdres) */
+	/* 	return make_double(fresult); */
+	/* else */
+	/* 	return make_fixnum(result); */
+
+	object *obj1 = car(arguments);
+	object *obj2 = car(cdr(arguments));
+	char isdres = 0;
+
+	printf("--> sub_proc ( ");
+	print(arguments);
+	printf(" )\n");
+
+	if (!is_number(obj1) && !is_number(obj2))
+		throw_error("#<PROCEDURE -> error: not a number");
+	/* printf("\n"); */
+	/* printf("arg: ");     */
+	if (is_double(obj1) || is_double(obj2))
+		isdres = 1;
+	
+	if (isdres)
+	return make_double(
+		(is_double(obj1) ? obj1->data.double_num.value : obj1->data.fixnum.value)
+		-
+		(is_double(obj2) ? obj2->data.double_num.value : obj2->data.fixnum.value)
+		);
+
+	else
+		return make_fixnum(
+			obj1->data.fixnum.value
+			-
+			obj2->data.fixnum.value
+			);
 }
 
 object *mul_proc(object *arguments) {
-	long result = 1;
+	/* long result = 1; */
     
+	/* while (!is_the_empty_list(arguments)) { */
+	/* 	result *= (car(arguments))->data.fixnum.value; */
+	/* 	arguments = cdr(arguments); */
+	/* } */
+	/* return make_fixnum(result); */
+	double fresult = 1.0;
+	int64_t result = 1;
+	object *obj;
+	char isdres = 0;
+
+	printf("--> mul_proc ( ");
+	print(arguments);
+	printf(" )\n");
+	/* printf("\n"); */
+	/* printf("arg: ");     */
 	while (!is_the_empty_list(arguments)) {
-		result *= (car(arguments))->data.fixnum.value;
+		obj = car(arguments);
+		
+		if (is_double(obj)) {
+			if (!isdres) {
+				isdres = 1;
+				fresult = result;
+			}
+				
+			fresult += obj->data.double_num.value;
+		}
+		else if(is_fixnum(obj))
+			if (!isdres)
+				result *= obj->data.fixnum.value;
+			else
+				fresult *= obj->data.fixnum.value;
+		else
+			throw_error("#<PROCEDURE *> error: not a number");
+
 		arguments = cdr(arguments);
 	}
-	return make_fixnum(result);
+	if (isdres)
+		return make_double(fresult);
+	else
+		return make_fixnum(result);
+
 }
+
+object *div_proc(object *arguments) {
+	/* long result = 1; */
+    
+	/* while (!is_the_empty_list(arguments)) { */
+	/* 	result *= (car(arguments))->data.fixnum.value; */
+	/* 	arguments = cdr(arguments); */
+	/* } */
+	/* return make_fixnum(result); */
+	object *obj1 = car(arguments);
+	object *obj2 = car(cdr(arguments));
+	/* char isdres = 0; */
+
+	printf("--> div_proc ( ");
+	print(arguments);
+	printf(" )\n");
+
+	if (!is_number(obj1) && !is_number(obj2))
+		throw_error("#<PROCEDURE /> error: not a number");
+	/* printf("\n"); */
+	/* printf("arg: ");     */
+	/* if (is_double(obj1) || is_double(obj2)) */
+	/* 	isdres = 1; */
+	
+	/* if (isdres){ */
+		return make_double(
+			(is_double(obj1) ? obj1->data.double_num.value : obj1->data.fixnum.value)
+			/
+			(is_double(obj2) ? obj2->data.double_num.value : obj2->data.fixnum.value)
+			);
+
+/* } */
+	/* else */
+	/* 	return make_fixnum( */
+	/* 		obj1->data.fixnum.value */
+	/* 		/ */
+	/* 		obj2->data.fixnum.value */
+	/* 		); */
+}
+
 
 object *quotient_proc(object *arguments) {
 	return make_fixnum(
@@ -718,16 +858,34 @@ object *is_eq_proc(object *arguments) {
     
 	obj1 = car(arguments);
 	obj2 = cadr(arguments);
-    
-	if (obj1->type != obj2->type) {
+
+	if (obj1->type != obj2->type && !(is_number(obj1) && is_number(obj2))) {
 		return false;
 	}
+
 	switch (obj1->type) {
 	case FIXNUM:
-		return (obj1->data.fixnum.value == 
-			obj2->data.fixnum.value) ?
-                        true : false;
+		if (obj2->type == FIXNUM)
+			return (obj1->data.fixnum.value == 
+					obj2->data.fixnum.value) ?
+				true : false;
+		else
+			return ((double)obj1->data.fixnum.value == 
+					obj2->data.double_num.value) ?
+				true : false;
+			
 		break;
+	case DOUBLE:
+		if (obj2->type == DOUBLE)
+			return (obj1->data.double_num.value == 
+					obj2->data.double_num.value) ?
+				true : false;
+		else
+			return (obj1->data.double_num.value == 
+					(double) obj2->data.fixnum.value) ?
+				true : false;
+		break;
+
 	case CHARACTER:
 		return (obj1->data.character.value == 
 			obj2->data.character.value) ?
@@ -1154,9 +1312,11 @@ void init(void) {
 	add_procedure("+"        , add_proc);
 	add_procedure("-"        , sub_proc);
 	add_procedure("*"        , mul_proc);
+	add_procedure("/"        , div_proc);
 	add_procedure("quotient" , quotient_proc);
 	add_procedure("remainder", remainder_proc);
-	add_procedure("="        , is_number_equal_proc);
+	/* add_procedure("="        , is_number_equal_proc); */
+	add_procedure("="        , is_eq_proc);
 	add_procedure("<"        , is_less_than_proc);
 	add_procedure(">"        , is_greater_than_proc);
 	add_procedure("<="       , is_less_than_or_equal_proc);
@@ -1175,7 +1335,7 @@ void init(void) {
 	add_procedure("list"    , list_proc);
 	add_procedure("cons?", iscons_proc);
 
-	add_procedure("eq?", is_eq_proc);
+	/* add_procedure("eq?", is_eq_proc); */
 	add_procedure("intern", intern_proc);
 
 	add_procedure("error-to-string", error_to_string_proc);
