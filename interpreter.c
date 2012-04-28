@@ -92,6 +92,7 @@ char *strdup(const char *s);
 /* EF - eval flag */
 #define EF_NULL 0
 #define EF_ARGUMENTS 1
+#define EF_TOPLEVEL 2
 
 void print(object *obj);
 
@@ -2176,6 +2177,7 @@ tailcall:
 		if (setjmp(new_jmp_buf->data.context.jmp_env) != 0) {
 			/* non local return here. exception happened */
 			/* apply catch function to exception */
+			jmp_envs = cdr(jmp_envs);
 			return eval(cons(catch_func(exp), cons(new_jmp_buf->data.context.exception,the_empty_list)), env, 0);
 		} else {
 			/* normal return */
@@ -2403,14 +2405,30 @@ void dump_object(object *obj, char *str)
 /***************************** REPL ******************************/
 
 int main(void) {
-
+	int first_it = 1;
+	
 	printf("Welcome to KL interpreter. "
 	       "Use ctrl-c to exit.\n");
 
 	init();
 
+	object *new_jmp_buf = make_jmp_buf();
+	jmp_envs = cons(new_jmp_buf, jmp_envs);
+
 	while (1) {
 		printf("> ");
+
+		if (first_it) {
+			first_it = 0;
+
+			if (setjmp(new_jmp_buf->data.context.jmp_env) != 0) {
+				/* non local return here. unhandled exception happened */
+
+				printf("Unhandled exception: %s\n", new_jmp_buf->data.context.exception->data.exception.msg);
+				continue;
+			}
+		}
+
 		print(eval(read(stdin), vars_env, 0));
 		printf("\n");
 	}
