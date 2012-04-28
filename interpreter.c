@@ -1127,6 +1127,22 @@ object *get_time_proc(object *args) {
 /* #endif */
 
 }
+object *read(FILE *in);
+
+object *load_proc(object *args) {
+	char *path = car(args)->data.string.value;
+
+	object *fstream = open_proc(cons(file_symbol, cons(make_string(path), cons(in_symbol, the_empty_list))));
+
+	FILE *fp = fstream->data.file_stream.fd;
+
+	while (!feof(fp))
+		print(eval(read(fp), funcs_env, 0));
+
+	fclose(fp);
+
+	return ok_symbol;
+}
 
 
 /* object *eval_without_macros_proc(object *obj, object *env) { */
@@ -1391,6 +1407,8 @@ void init(void) {
 
 	add_procedure("get-time", get_time_proc);
 
+	add_procedure("load", load_proc);
+
 	char *home_dir="";
 	
 	vars_env = extend_environment(
@@ -1580,7 +1598,10 @@ object *read(FILE *in) {
 
 	eat_whitespace(in);
 
-	c = getc(in);    
+	c = getc(in);
+
+	if (c == -1)
+		return ok_symbol;
 
 	if (c == '#') { /* read a boolean or character */
 		c = getc(in);
