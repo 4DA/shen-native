@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <stdint.h>
-
+#include <math.h>
 
 
 /**************************** MODEL ******************************/
@@ -1569,6 +1569,8 @@ object *read(FILE *in) {
 	double decim = 0;
 	double nd;
 	float deco = 1.0;
+	long expo = 0;
+	short exp_sign = 1;
 	double fnum;
 	
 	char is_decim = 0;
@@ -1618,15 +1620,29 @@ object *read(FILE *in) {
 				decim = decim + nd;
 			}
 		}
+		if(c == 'e') {
+			is_decim = 1;
+
+			c = getc(in);
+			if (c == '-') {
+				exp_sign = -1;
+			}
+			else
+				ungetc(c,in);
+
+			while (isdigit(c = getc(in))) {
+				expo = (expo * 10) + (c - '0');
+			}
+		}
 		
-		if (decim != 0)
-			fnum = (num + decim) * sign;
+		if (is_decim == 1)
+			fnum = (num + decim) * sign * pow(10.0, exp_sign * (double)expo);
 		else
 			num *= sign;
 		if (is_delimiter(c)) {
 			ungetc(c, in);
 
-			if (decim != 0)
+			if (is_decim == 1)
 				return make_double(fnum);
 			return make_fixnum(num);
 		}
