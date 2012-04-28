@@ -15,6 +15,7 @@
 #include <sys/resource.h>
 #include <stdint.h>
 #include <math.h>
+#include <unistd.h>
 
 
 /**************************** MODEL ******************************/
@@ -94,6 +95,8 @@ char *strdup(const char *s);
 #define EF_ARGUMENTS 1
 #define EF_TOPLEVEL 2
 
+#define MAX_FPATH 256
+
 void print(object *obj);
 
 /* no GC so truely "unlimited extent" */
@@ -140,11 +143,14 @@ object *funcs_env;
 object *vars_env;
 object *jmp_envs;
 
-
+object *homedir_obj;
 
 object *cons(object *car, object *cdr);
 object *car(object *pair);
 object *cdr(object *pair);
+
+
+
 
 void dump_object(object *obj, char *str);
 
@@ -1028,12 +1034,18 @@ object *open_proc(object *args) {
 	/* TODO: throw error */
 	}
 
+	char *fpath = path_obj->data.string.value;
+	char rpath[MAX_FPATH];
+	char *cur_dir = homedir_obj->data.string.value;
+	
+	sprintf(rpath, "%s/%s", cur_dir, fpath);
+	
 	if (dir_obj == in_symbol) {
-		fd = fopen(path_obj->data.string.value, "r");
+		fd = fopen(rpath, "r");
 		fst = FILE_IN;
 	}
 	else if (dir_obj == out_symbol) {
-		fd = fopen(path_obj->data.string.value, "w");
+		fd = fopen(rpath, "w");
 		fst = FILE_OUT;
 	}
 	else {
@@ -1042,10 +1054,12 @@ object *open_proc(object *args) {
 	}
 
 	if (fd == NULL) {
-		throw_error(strerror(errno));
+		char *err=malloc(256);
+		sprintf(err, "#<PROCEDURE open (%s)>: %s", rpath, strerror(errno));
+		throw_error(err);
 	}
 
-	return make_file_stream(fd, path_obj->data.string.value, fst);
+	return make_file_stream(fd, fpath, fst);
 }
 
 object *close_proc(object *args) {
@@ -1127,7 +1141,7 @@ object *get_time_proc(object *args) {
 /* #endif */
 
 }
-object *read(FILE *in);
+object *parse(FILE *in);
 
 object *load_proc(object *args) {
 	char *path = car(args)->data.string.value;
@@ -1137,7 +1151,7 @@ object *load_proc(object *args) {
 	FILE *fp = fstream->data.file_stream.fd;
 
 	while (!feof(fp))
-		print(eval(read(fp), funcs_env, 0));
+		print(eval(parse(fp), funcs_env, 0));
 
 	fclose(fp);
 
@@ -1409,11 +1423,14 @@ void init(void) {
 
 	add_procedure("load", load_proc);
 
-	char *home_dir="";
+	char *home_dir = malloc(256);
+	getcwd(home_dir, 255); /* TODO: get system max path */
+
+	homedir_obj = make_string(home_dir);
 	
 	vars_env = extend_environment(
 		cons(make_symbol("*home-directory*"), the_empty_list),
-		cons(make_string(home_dir), the_empty_list),
+		cons(homedir_obj, the_empty_list),
 		vars_env);
 
 #define IMP_LANG "ANSI C99"
@@ -1537,7 +1554,7 @@ object *read_character(FILE *in) {
 	return make_character(c);
 }
 
-object *read(FILE *in);
+object *parse(FILE *in);
 
 object *read_pair(FILE *in) {
 	int c;
@@ -1552,7 +1569,7 @@ object *read_pair(FILE *in) {
 	}
 	ungetc(c, in);
 
-	car_obj = read(in);
+	car_obj = parse(in);
 
 	eat_whitespace(in);
     
@@ -1563,7 +1580,7 @@ object *read_pair(FILE *in) {
 			fprintf(stderr, "dot not followed by delimiter\n");
 			exit(1);
 		}
-		cdr_obj = read(in);
+		cdr_obj = parse(in);
 		eat_whitespace(in);
 		c = getc(in);
 		if (c != ')') {
@@ -1580,7 +1597,7 @@ object *read_pair(FILE *in) {
 	}
 }
 
-object *read(FILE *in) {
+object *parse(FILE *in) {
 	int c;
 	short sign = 1;
 	int i;
@@ -1593,7 +1610,7 @@ object *read(FILE *in) {
 	double fnum;
 	
 	char is_decim = 0;
-#define BUFFER_MAX 1000
+#define BUFFER_MAX 1000000
 	char buffer[BUFFER_MAX];
 
 	eat_whitespace(in);
@@ -1732,7 +1749,7 @@ object *read(FILE *in) {
 		return read_pair(in);
 	}
 	else if (c == '\'') { /* read quoted expression */
-		return cons(quote_symbol, cons(read(in), the_empty_list));
+		return cons(quote_symbol, cons(parse(in), the_empty_list));
 	}
 	else {
 		fprintf(stderr, "bad input. Unexpected '%c'\n", c);
@@ -2450,7 +2467,7 @@ int main(void) {
 			}
 		}
 
-		print(eval(read(stdin), vars_env, 0));
+		print(eval(parse(stdin), vars_env, 0));
 		printf("\n");
 	}
 
