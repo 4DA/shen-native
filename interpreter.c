@@ -1480,7 +1480,7 @@ char is_delimiter(int c) {
 
 char is_initial(int c) {
 	return isalpha(c) || c == '*' || c == '/' || c == '>' ||
-		c == '<' || c == '=' || c == '?' || c == '!';
+		c == '<' || c == '=' || c == '?' || c == '!' || c == '_';
 }
 
 int peek(FILE *in) {
