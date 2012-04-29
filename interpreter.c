@@ -2038,11 +2038,11 @@ object *let_bindings(object *exp) {
 }
 
 object *let_body(object *exp) {
-	return cddr(exp);
+	return car(cdr(cdr(cdr(exp))));
 }
 
 object *binding_parameter(object *binding) {
-	return car(binding);
+	return cadr(binding);
 }
 
 object *binding_argument(object *binding) {
@@ -2063,19 +2063,19 @@ object *bindings_arguments(object *bindings) {
 		     bindings_arguments(cdr(bindings)));
 }
 
-object *let_parameters(object *exp) {
-	return bindings_parameters(let_bindings(exp));
+object *let_parameter(object *exp) {
+	return let_bindings(exp);
 }
 
-object *let_arguments(object *exp) {
-	return bindings_arguments(let_bindings(exp));
+object *let_argument(object *exp) {
+	return car(cdr(cdr(exp)));
 }
 
 object *let_to_application(object *exp) {
 	return make_application(
-		make_lambda(let_parameters(exp),
-			    let_body(exp)),
-		let_arguments(exp));
+		make_lambda(let_parameter(exp),
+					cons(let_body(exp), the_empty_list)),
+		cons(let_argument(exp),the_empty_list));
 }
 
 object *make_freeze(object *exp, object *env) {
@@ -2144,14 +2144,14 @@ object *eval(object *exp, object *env, unsigned long flags) {
 	object *procedure;
 	object *arguments;
 
-	/* printf("-->eval\n"); */
+	printf("-->eval\n");
 tailcall:
-	/* print(exp); */
+	println(exp);
 	/* printf("\n"); */
 	/* printf("-->tailcall\n"); */
-	/* printf("env = "); */
-	/* print(env); */
-	/* printf("\n"); */
+	printf("env = ");
+	println(env);
+
 	
 	if (is_self_evaluating(exp, flags)) {
 		/* printf("exp: "); */
