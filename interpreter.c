@@ -1151,8 +1151,10 @@ object *load_proc(object *args) {
 
 	FILE *fp = fstream->data.file_stream.fd;
 
+	printf("loading %s\n", fstream->data.file_stream.path);
+	
 	while (!feof(fp))
-		print(eval(parse(fp), funcs_env, 0));
+		println(eval(parse(fp), vars_env, 0));
 
 	fclose(fp);
 
@@ -1480,8 +1482,12 @@ char is_delimiter(int c) {
 }
 
 char is_initial(int c) {
-	return isalpha(c) || c == '*' || c == '/' || c == '>' ||
-		c == '<' || c == '=' || c == '?' || c == '!' || c == '_';
+	return isalpha(c) ||
+		c == '=' || c == '-' ||	c == '*' || c == '/' || c == '+' ||
+		c == '_' || c == '?' || c == '$' || c == '!' || c == '@' ||
+		c == '~' || c == '>' || c == '<' || c == '&' || c == '%' ||
+		c == 39  || c == '#' || c == '`' || c == ';' || c == ':' ||
+		c == '{' || c == '}' || c == '.';
 }
 
 int peek(FILE *in) {
@@ -1611,7 +1617,7 @@ object *parse(FILE *in) {
 	double fnum;
 	
 	char is_decim = 0;
-#define BUFFER_MAX 1000000
+#define BUFFER_MAX 10000
 	char buffer[BUFFER_MAX];
 
 	eat_whitespace(in);
@@ -2138,20 +2144,20 @@ object *eval_definition(object *exp, object *env) {
 	define_variable(definition_variable(exp), 
 			eval(definition_value(exp), env, EF_NULL),
 			funcs_env);
-	return ok_symbol;
+	return definition_variable(exp);
 }
 
 object *eval(object *exp, object *env, unsigned long flags) {
 	object *procedure;
 	object *arguments;
 
-	printf("-->eval\n");
+	/* printf("-->eval\n"); */
 tailcall:
-	println(exp);
+	/* println(exp); */
 	/* printf("\n"); */
 	/* printf("-->tailcall\n"); */
-	printf("env = ");
-	println(env);
+	/* printf("env = "); */
+	/* println(env); */
 
 	
 	if (is_self_evaluating(exp, flags)) {
@@ -2252,13 +2258,13 @@ tailcall:
 		
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
-		printf("\n----------\nprocedure: ");
-		print(procedure);
-		printf("\n");
+		/* printf("\n----------\nprocedure: "); */
+		/* print(procedure); */
+		/* printf("\n"); */
 
-		printf("\n---------\nargs: ");
-		print(arguments);
-		printf("\n-----------\n");
+		/* printf("\n---------\nargs: "); */
+		/* print(arguments); */
+		/* printf("\n-----------\n"); */
 	       
 		if (is_primitive_proc(procedure)) {
 			return (procedure->data.primitive_proc.fn)(arguments);
