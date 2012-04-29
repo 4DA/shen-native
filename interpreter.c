@@ -98,6 +98,7 @@ char *strdup(const char *s);
 #define MAX_FPATH 256
 
 void print(object *obj);
+void println(object *obj);
 
 /* no GC so truely "unlimited extent" */
 object *alloc_object(void) {
@@ -2243,13 +2244,12 @@ tailcall:
 	}
 
 	else if (is_application(exp)) {
-		/* printf("eval: application\n"); */
 
-		if (!(is_lambda(operator(exp)))
-			&& is_symbol(operator(exp)))
-			operator(exp)->data.symbol.is_func = 1;
+		if (is_symbol(operator(exp)))
+			procedure = lookup_variable_value(operator(exp), funcs_env);
+		else
+			procedure = eval(operator(exp), env, flags);
 		
-		procedure = eval(operator(exp), funcs_env, flags);
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
 		printf("\n----------\nprocedure: ");
