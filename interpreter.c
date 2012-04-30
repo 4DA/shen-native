@@ -1505,10 +1505,10 @@ void eat_whitespace(FILE *in) {
 		if (isspace(c)) {
 			continue;
 		}
-		else if (c == ';') { /* comments are whitespace also */
-			while (((c = getc(in)) != EOF) && (c != '\n'));
-			continue;
-		}
+		/* else if (c == ';') { /\* comments are whitespace also *\/ */
+		/* 	while (((c = getc(in)) != EOF) && (c != '\n')); */
+		/* 	continue; */
+		/* } */
 		ungetc(c, in);
 		break;
 	}
