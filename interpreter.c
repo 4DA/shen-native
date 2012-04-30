@@ -1244,13 +1244,18 @@ object *lookup_variable_value(object *var, object *env) {
 		}
 		env = enclosing_environment(env);
 	}
-	fprintf(stderr, "<--unbound variable: ");
-	print(var);
-	printf("\n");
-	printf("env = ");
-	print(env);
-	printf("\n");
-	exit(1);
+
+	char err[256];
+	sprintf(err, "unbound variable: %s", var->data.symbol.value);
+	throw_error(err);
+	/* fprintf(stderr, "<--unbound variable: "); */
+	
+	/* print(var); */
+	/* printf("\n"); */
+	/* printf("env = "); */
+	/* print(env); */
+	/* printf("\n"); */
+	/* exit(1); */
 }
 
 void set_variable_value(object *var, object *val, object *env) {
