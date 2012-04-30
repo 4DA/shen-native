@@ -1429,7 +1429,7 @@ void init(void) {
 
 	add_procedure("get-time", get_time_proc);
 
-	add_procedure("load", load_proc);
+	add_procedure("load-kl", load_proc);
 
 	char *home_dir = malloc(256);
 	getcwd(home_dir, 255); /* TODO: get system max path */
