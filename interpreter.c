@@ -1172,19 +1172,49 @@ object *lookup_variable_value(object *var, object *env);
 /* 	return lookup_variable_value(symbol, env); */
 /* } */
 
+object *duplicate_symbol(object *sym) {
+	object *obj;
+	
+	obj = alloc_object();
+	obj->type = SYMBOL;
+	obj->data.symbol.value = malloc(strlen(sym->data.symbol.value) + 1);
+	obj->data.symbol.is_argument = 0;
+	obj->data.symbol.is_func = 0;
+
+	if (obj->data.symbol.value == NULL) {
+		fprintf(stderr, "out of memory\n");
+		exit(1);
+	}
+	strcpy(obj->data.symbol.value, sym->data.symbol.value);
+
+	return obj;
+}
+
+object *duplicate_symbol_list(object *list) {
+	if (list == the_empty_list)
+		return list;
+	else
+		return cons(duplicate_symbol(car(list)), duplicate_symbol_list(cdr(list)));
+}
+
 object *make_compound_proc(object *parameters, object *body,
                            object* env) {
 	object *obj;
+
+	object *param_list = duplicate_symbol_list(parameters);
+
+	/* object *tmp = param_list; */
+	object *tmp = parameters;
     
 	obj = alloc_object();
 	obj->type = COMPOUND_PROC;
 
-	object *tmp = parameters;
-	while (!is_empty_list(tmp)) {
-		car(tmp)->data.symbol.is_argument = 1;
-		tmp = cdr(tmp);
-	}
+	/* while (!is_empty_list(tmp)) { */
+	/* 	car(tmp)->data.symbol.is_argument = 1; /\* <- HERE!! TODO: *\/ */
+	/* 	tmp = cdr(tmp); */
+	/* } */
 	
+	/* obj->data.compound_proc.parameters = param_list; */
 	obj->data.compound_proc.parameters = parameters;
 	obj->data.compound_proc.body = body;
 	obj->data.compound_proc.env = env;
@@ -1245,9 +1275,27 @@ object *lookup_variable_value(object *var, object *env) {
 		env = enclosing_environment(env);
 	}
 
+	env = funcs_env;
+
+	while (!is_the_empty_list(env)) {
+		frame = first_frame(env);
+		vars = frame_variables(frame);
+		vals = frame_values(frame);
+		while (!is_the_empty_list(vars)) {
+			if (var == car(vars)) {
+				return car(vals);
+			}
+			vars = cdr(vars);
+			vals = cdr(vals);
+		}
+		env = enclosing_environment(funcs_env);
+	}
+
+
 	char err[256];
 	sprintf(err, "unbound variable: %s", var->data.symbol.value);
 	throw_error(err);
+	return NULL;
 	/* fprintf(stderr, "<--unbound variable: "); */
 	
 	/* print(var); */
@@ -1365,7 +1413,7 @@ void init(void) {
 	add_procedure("boolean?"   , is_boolean_proc);
 	add_procedure("symbol?"    , is_symbol_proc);
 	add_procedure("integer?"   , is_integer_proc);
-	add_procedure("char?"      , is_char_proc);
+	/* add_procedure("char?"      , is_char_proc); */
 	add_procedure("string?"    , is_string_proc);
 	add_procedure("pair?"      , is_pair_proc);
 	add_procedure("procedure?" , is_procedure_proc);
@@ -1381,8 +1429,8 @@ void init(void) {
 	add_procedure("-"        , sub_proc);
 	add_procedure("*"        , mul_proc);
 	add_procedure("/"        , div_proc);
-	add_procedure("quotient" , quotient_proc);
-	add_procedure("remainder", remainder_proc);
+	/* add_procedure("quotient" , quotient_proc); */
+	/* add_procedure("remainder", remainder_proc); */
 	/* add_procedure("="        , is_number_equal_proc); */
 	add_procedure("="        , is_eq_proc);
 	add_procedure("<"        , is_less_than_proc);
@@ -1398,9 +1446,9 @@ void init(void) {
 	add_procedure("cons"    , cons_proc);
 	add_procedure("hd"     , car_proc);
 	add_procedure("tl"     , cdr_proc);
-	add_procedure("set-car!", set_car_proc);
-	add_procedure("set-cdr!", set_cdr_proc);
-	add_procedure("list"    , list_proc);
+	/* add_procedure("set-car!", set_car_proc); */
+	/* add_procedure("set-cdr!", set_cdr_proc); */
+	/* add_procedure("list"    , list_proc); */
 	add_procedure("cons?", iscons_proc);
 
 	/* add_procedure("eq?", is_eq_proc); */
@@ -2257,11 +2305,32 @@ tailcall:
 	else if (is_application(exp)) {
 
 		if (is_symbol(operator(exp)))
-			procedure = lookup_variable_value(operator(exp), funcs_env);
+			/* if (operator(exp)->data.symbol.is_func) */
+				procedure = lookup_variable_value(operator(exp), env);
+			/* else */
+			/* 	procedure = lookup_variable_value(operator(exp), funcs_env); */
 		else
 			procedure = eval(operator(exp), env, flags);
+
+		object *tmp = operands(exp);
+
+		while (!is_empty_list(tmp)) {
+			if (is_symbol(car(tmp))) {
+				car(tmp)->data.symbol.is_argument = 1;
+			}
+			tmp = cdr(tmp);
+		}
 		
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
+
+		tmp = operands(exp);
+		while (!is_empty_list(tmp)) {
+			if (is_symbol(car(tmp))) {
+				car(tmp)->data.symbol.is_argument = 0;
+			}
+			tmp = cdr(tmp);
+		}
+
 
 		/* printf("\n----------\nprocedure: "); */
 		/* print(procedure); */
@@ -2280,10 +2349,10 @@ tailcall:
 				arguments,
 				procedure->data.compound_proc.env);
 			exp = make_begin(procedure->data.compound_proc.body);
-			flags |= EF_ARGUMENTS;
-			printf("env: ");
-			print(env);
-			printf("\n--------------\n");
+			/* flags |= EF_ARGUMENTS; */
+			/* printf("env: "); */
+			/* print(env); */
+			/* printf("\n--------------\n"); */
 			goto tailcall;
 		}
 		else {
@@ -2401,9 +2470,15 @@ void print(object *obj) {
 
 	case VECTOR:
 		printf ("<");
+		#define MAX_VEC_PRINT 10
 		for (i = 1; i <= obj->data.vector.limit; i++) {
 			printf(" ");
 			print(obj->data.vector.vec[i]);
+			if ( i > MAX_VEC_PRINT ) {
+				printf("...(%d more elements)", obj->data.vector.limit - i);
+				break;
+			}
+					
 		}
 		
 		printf (" >");
@@ -2417,7 +2492,7 @@ void print(object *obj) {
 		break;
 			
         default:
-		fprintf(stderr, "cannot print unknown type\n");
+			throw_error("cannot print unknown type");
 		exit(1);
 	}
 }
