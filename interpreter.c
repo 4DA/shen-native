@@ -2259,7 +2259,14 @@ tailcall:
 		goto tailcall;
 	}
 	else if (is_value(exp)) {
-		return lookup_variable_value(binding_argument(exp), env);
+		object *obj = lookup_variable_value(binding_argument(exp), symbols_env);
+		if (obj)
+			return obj;
+		else {
+			char errstr[128];
+			sprintf(errstr, "symbol not bound: %s", binding_argument(exp)->data.symbol.value);
+			throw_error(errstr);
+		}
 	}
 	else if (is_freeze(exp)) {
 		return make_freeze(exp, env);
@@ -2416,6 +2423,9 @@ void print(object *obj) {
 	char c;
 	char *str;
 	int i;
+
+	if (!obj)
+		throw_error("print: NULL pointer!");
     
 	switch (obj->type) {
 	case THE_EMPTY_LIST:
