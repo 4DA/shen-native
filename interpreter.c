@@ -2163,7 +2163,7 @@ object *list_of_values(object *exps, object *env, unsigned long flags) {
 object *eval_assignment(object *exp, object *env, unsigned long flags) {
 	set_variable_value(assignment_variable(exp), 
 			   eval(assignment_value(exp), env, flags),
-			   env);
+			   symbols_env);
 	/* printf("assgn env: "); */
 	/* print(env); */
 	/* printf("\n"); */
@@ -2260,7 +2260,7 @@ tailcall:
 	}
 	else if (is_value(exp)) {
 		object *obj = lookup_variable_value(binding_argument(exp), symbols_env);
-		if (obj)
+		if (obj != NULL)
 			return obj;
 		else {
 			char errstr[128];
