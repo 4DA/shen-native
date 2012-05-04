@@ -141,7 +141,8 @@ object *run_symbol;
 
 object *the_empty_environment;
 object *funcs_env;
-object *vars_env;
+object *params_env;
+object *symbols_env;
 object *jmp_envs;
 
 object *homedir_obj;
@@ -1154,7 +1155,7 @@ object *load_proc(object *args) {
 	printf("loading %s\n", fstream->data.file_stream.path);
 	
 	while (!feof(fp))
-		println(eval(parse(fp), vars_env, 0));
+		println(eval(parse(fp), params_env, 0));
 
 	fclose(fp);
 
@@ -1201,10 +1202,10 @@ object *make_compound_proc(object *parameters, object *body,
                            object* env) {
 	object *obj;
 
-	object *param_list = duplicate_symbol_list(parameters);
+	/* object *param_list = duplicate_symbol_list(parameters); */
 
 	/* object *tmp = param_list; */
-	object *tmp = parameters;
+	/* object *tmp = parameters; */
     
 	obj = alloc_object();
 	obj->type = COMPOUND_PROC;
@@ -1275,27 +1276,13 @@ object *lookup_variable_value(object *var, object *env) {
 		env = enclosing_environment(env);
 	}
 
-	env = funcs_env;
-
-	while (!is_the_empty_list(env)) {
-		frame = first_frame(env);
-		vars = frame_variables(frame);
-		vals = frame_values(frame);
-		while (!is_the_empty_list(vars)) {
-			if (var == car(vars)) {
-				return car(vals);
-			}
-			vars = cdr(vars);
-			vals = cdr(vals);
-		}
-		env = enclosing_environment(funcs_env);
-	}
-
-
-	char err[256];
-	sprintf(err, "unbound variable: %s", var->data.symbol.value);
-	throw_error(err);
 	return NULL;
+
+
+	/* char err[256]; */
+	/* sprintf(err, "unbound variable: %s", var->data.symbol.value); */
+	/* throw_error(err); */
+	/* return NULL; */
 	/* fprintf(stderr, "<--unbound variable: "); */
 	
 	/* print(var); */
@@ -1402,7 +1389,9 @@ void init(void) {
 	the_empty_environment = the_empty_list;
 
 	funcs_env = setup_environment();
-	vars_env = setup_environment();
+	params_env = setup_environment();
+	symbols_env = setup_environment();
+	
 
 #define add_procedure(scheme_name, c_name)              \
 	define_variable(make_symbol(scheme_name),	\
@@ -1484,10 +1473,10 @@ void init(void) {
 
 	homedir_obj = make_string(home_dir);
 	
-	vars_env = extend_environment(
+	symbols_env = extend_environment(
 		cons(make_symbol("*home-directory*"), the_empty_list),
 		cons(homedir_obj, the_empty_list),
-		vars_env);
+		symbols_env);
 
 #define IMP_LANG "ANSI C99"
 #define IMP_PORT "native"
@@ -1495,30 +1484,30 @@ void init(void) {
 #define IMP_PORTERS "dca"
 #define IMP_IMPL "glibc"
 
-	vars_env = extend_environment(
+	symbols_env = extend_environment(
 		cons(make_symbol("*language*"), the_empty_list),
 		cons(make_string(IMP_LANG), the_empty_list),
-		vars_env);
+		symbols_env);
 
-	vars_env = extend_environment(
+	symbols_env = extend_environment(
 		cons(make_symbol("*port*"), the_empty_list),
 		cons(make_string(IMP_PORT), the_empty_list),
-		vars_env);
+		symbols_env);
 
-	vars_env = extend_environment(
+	symbols_env = extend_environment(
 		cons(make_symbol("*version*"), the_empty_list),
 		cons(make_string(IMP_VERSION), the_empty_list),
-		vars_env);
+		symbols_env);
 
-	vars_env = extend_environment(
+	symbols_env = extend_environment(
 		cons(make_symbol("*porters*"), the_empty_list),
 		cons(make_string(IMP_PORTERS), the_empty_list),
-		vars_env);
+		symbols_env);
 
-	vars_env = extend_environment(
+	symbols_env = extend_environment(
 		cons(make_symbol("*implementation*"), the_empty_list),
 		cons(make_string(IMP_IMPL), the_empty_list),
-		vars_env);
+		symbols_env);
 
 	
 
@@ -2182,8 +2171,8 @@ object *eval_assignment(object *exp, object *env, unsigned long flags) {
 	/* long flags = EF_ARGUMENTS; */
 	/* printf("EF is %lu\n", !(~flags & EF_ARGUMENTS)); */
 
-	/* printf("in ev_asgn: vars_env = "); */
-	/* print(vars_env); */
+	/* printf("in ev_asgn: symbols_env = "); */
+	/* print(symbols_env); */
 	/* printf("\n"); */
 
 	return ok_symbol;
@@ -2213,7 +2202,7 @@ tailcall:
 	/* println(env); */
 
 	
-	if (is_self_evaluating(exp, flags)) {
+	if ((lookup_variable_value(exp, env) == NULL) && is_self_evaluating(exp, flags)) {
 		/* printf("exp: "); */
 		/* print(exp); */
 		/* printf("\n is self-eval (flags = %lu )\n", flags); */
@@ -2223,7 +2212,14 @@ tailcall:
 		/* printf("exp: "); */
 		/* print(exp); */
 		/* printf("\n is variable\n"); */
-		return lookup_variable_value(exp, env);
+		object *obj = lookup_variable_value(exp, env);
+		if (obj != NULL)
+			return obj;
+		else {
+			char errstr[128];
+			sprintf(errstr, "unbound variable: %s", exp->data.symbol.value);
+			throw_error(errstr);
+		}
 	}
 	else if (is_quoted(exp)) {
 		return text_of_quotation(exp);
@@ -2304,32 +2300,53 @@ tailcall:
 
 	else if (is_application(exp)) {
 
-		if (is_symbol(operator(exp)))
-			/* if (operator(exp)->data.symbol.is_func) */
-				procedure = lookup_variable_value(operator(exp), env);
-			/* else */
-			/* 	procedure = lookup_variable_value(operator(exp), funcs_env); */
-		else
+		if (is_symbol(operator(exp))) {
+			
+			procedure = lookup_variable_value(operator(exp), env);
+
+			if (procedure == NULL) {
+				/* procedure is from global function env */
+				procedure = lookup_variable_value(operator(exp), funcs_env);
+				if (procedure == NULL) {
+					/* procedure is not globally defined */
+					char errstr[128];
+					sprintf(errstr, "unknown procedure: %s", operator(exp)->data.symbol.value);
+					throw_error(errstr);
+				}
+			}
+			else if(is_symbol(procedure)) {
+				/* procedure as a parameter */
+				procedure = lookup_variable_value(procedure, funcs_env);
+				if (procedure == NULL) {
+					/* procedure is not globally defined */
+					char errstr[128];
+					sprintf(errstr, "unknown procedure: %s", operator(exp)->data.symbol.value);
+					throw_error(errstr);
+				}
+			}
+				
+		}
+		else 
 			procedure = eval(operator(exp), env, flags);
 
-		object *tmp = operands(exp);
+		/* object *tmp = operands(exp); */
 
-		while (!is_empty_list(tmp)) {
-			if (is_symbol(car(tmp))) {
-				car(tmp)->data.symbol.is_argument = 1;
-			}
-			tmp = cdr(tmp);
-		}
-		
+		/* while (!is_empty_list(tmp)) { */
+		/* 	if (is_symbol(car(tmp))) { */
+		/* 		car(tmp)->data.symbol.is_argument = 1; */
+		/* 	} */
+		/* 	tmp = cdr(tmp); */
+		/* } */
+		/* TODO: NEED AN EXTRA STACK SYMBOL TABLE FOR CLOSURE BINDINGS  */
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
-		tmp = operands(exp);
-		while (!is_empty_list(tmp)) {
-			if (is_symbol(car(tmp))) {
-				car(tmp)->data.symbol.is_argument = 0;
-			}
-			tmp = cdr(tmp);
-		}
+		/* tmp = operands(exp); */
+		/* while (!is_empty_list(tmp)) { */
+		/* 	if (is_symbol(car(tmp))) { */
+		/* 		car(tmp)->data.symbol.is_argument = 0; */
+		/* 	} */
+		/* 	tmp = cdr(tmp); */
+		/* } */
 
 
 		/* printf("\n----------\nprocedure: "); */
@@ -2363,7 +2380,9 @@ tailcall:
 		}
 	}
 	else {
-		fprintf(stderr, "cannot eval unknown expression type\n");
+		fprintf(stderr, "cannot eval unknown expression type: \n");
+		println(exp);
+
 		exit(1);
 	}
 	fprintf(stderr, "eval illegal state\n");
@@ -2553,7 +2572,7 @@ int main(void) {
 			}
 		}
 
-		print(eval(parse(stdin), vars_env, 0));
+		print(eval(parse(stdin), params_env, 0));
 		printf("\n");
 	}
 
