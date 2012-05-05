@@ -2024,25 +2024,32 @@ object *expand_clauses(object *clauses) {
 	object *rest;
     
 	if (is_the_empty_list(clauses)) {
-		return false;
+		/* return false; */
+		throw_error("cond clauses error");
 	}
 	else {
 		first = car(clauses);
 		rest  = cdr(clauses);
-		if (is_cond_else_clause(first)) {
-			if (is_the_empty_list(rest)) {
-				return sequence_to_exp(cond_actions(first));
-			}
-			else {
-				fprintf(stderr, "else clause isn't last cond->if");
-				exit(1);
-			}
-		}
-		else {
+		printf("--> cond\n");
+		printf("first clause: \n");
+		println(first);
+		printf("rest clauses: \n");
+		println(rest);
+			
+		/* if (is_cond_else_clause(first)) { */
+		/* 	if (is_the_empty_list(rest)) { */
+		/* 		return sequence_to_exp(cond_actions(first)); */
+		/* 	} */
+		/* 	else { */
+		/* 		fprintf(stderr, "else clause isn't last cond->if"); */
+		/* 		exit(1); */
+		/* 	} */
+		/* } */
+		/* else { */
 			return make_if(cond_predicate(first),
 				       sequence_to_exp(cond_actions(first)),
 				       expand_clauses(rest));
-		}
+		/* } */
 	}
 }
 
@@ -2200,7 +2207,7 @@ tailcall:
 	/* printf("-->tailcall\n"); */
 	/* printf("env = "); */
 	/* println(env); */
-
+	
 	
 	if ((lookup_variable_value(exp, env) == NULL) && is_self_evaluating(exp, flags)) {
 		/* printf("exp: "); */
