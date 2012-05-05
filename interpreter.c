@@ -1669,21 +1669,6 @@ object *parse(FILE *in) {
 	if (c == -1)
 		return ok_symbol;
 
-	if (c == '#') { /* read a boolean or character */
-		c = getc(in);
-		switch (c) {
-		case 't':
-			return true;
-		case 'f':
-			return false;
-		case '\\':
-			return read_character(in);
-		default:
-			fprintf(stderr,
-				"unknown boolean or character literal\n");
-			exit(1);
-		}
-	}
 	else if (isdigit(c) || (c == '-' && (isdigit(peek(in))))) {
 		/* read a fixnum */
 		if (c == '-') {
@@ -1759,6 +1744,10 @@ object *parse(FILE *in) {
 		if (is_delimiter(c)) {
 			buffer[i] = '\0';
 			ungetc(c, in);
+			if (strcmp(buffer, "true") == 0)
+				return true;
+			else if (strcmp(buffer, "false") == 0)
+				return false;
 			return make_symbol(buffer);
 		}
 		else {
@@ -2018,6 +2007,7 @@ object *sequence_to_exp(object *seq) {
 		return make_begin(seq);
 	}
 }
+object *make_simple_error(char *msg);
 
 object *expand_clauses(object *clauses) {
 	object *first;
@@ -2025,7 +2015,7 @@ object *expand_clauses(object *clauses) {
     
 	if (is_the_empty_list(clauses)) {
 		/* return false; */
-		throw_error("cond clauses error");
+		return make_simple_error("cond clauses error");
 	}
 	else {
 		first = car(clauses);
@@ -2146,6 +2136,10 @@ object *trap_func(object *exp) {
 
 object *catch_func(object *exp) {
 	return car(cdr(cdr(exp)));
+}
+
+object *make_simple_error(char *msg) {
+	return cons(simple_error_symbol, cons(make_string(msg), the_empty_list));
 }
 
 		/* object *trap_func(object *exp) { */
@@ -2439,7 +2433,7 @@ void print(object *obj) {
 		printf("()");
 		break;
 	case BOOLEAN:
-		printf("#%c", is_false(obj) ? 'f' : 't');
+		printf("%s", is_false(obj) ? "false" : "true");
 		break;
 	case SYMBOL:
 		printf("%s", obj->data.symbol.value);
