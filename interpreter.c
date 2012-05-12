@@ -462,9 +462,9 @@ object *add_proc(object *arguments) {
 	object *obj;
 	char isdres = 0;
 
-	printf("--> addproc ( ");
-	print(arguments);
-	printf(" )\n");
+	/* printf("--> addproc ( "); */
+	/* print(arguments); */
+	/* printf(" )\n"); */
 	/* printf("\n"); */
 	/* printf("arg: ");     */
 	while (!is_the_empty_list(arguments)) {
@@ -847,6 +847,9 @@ object *str_proc(object *arguments) {
 }
 
 object *str_to_n_proc(object *arguments) {
+	if (! is_string(car(arguments))) {
+		throw_error("string->n: not a string");
+	}
 	char sym = car(arguments)->data.string.value[0];
 
 	return make_fixnum((int) sym);
@@ -965,10 +968,10 @@ object *make_vector(unsigned int length) {
 	obj->data.vector.vec = malloc((length+1)*sizeof(struct object*));
 	obj->data.vector.limit = length;
 
-	for (i = 1; i <= length; i++)
+	for (i = 0; i < length; i++)
 		obj->data.vector.vec[i] = fail_symbol;
 		
-	obj->data.vector.vec[0] = (struct object*) 0;
+	/* obj->data.vector.vec[0] = (struct object*) 0; */
 	if (obj->data.vector.vec == NULL) {
 		fprintf(stderr, "out of memory\n");
 		exit(1);
@@ -989,6 +992,8 @@ object *get_vec_elem_proc(object *obj) {
 	object *vec = car(obj);
 	unsigned long ind = car(cdr(obj))->data.fixnum.value;
 
+	if (ind < 0 || ind >= vec->data.vector.limit)
+		throw_error("<-address: out of bound exception");
 	return vec->data.vector.vec[ind];
 }
 
@@ -996,6 +1001,10 @@ object *get_vec_elem_proc(object *obj) {
 object *set_vec_elem_proc(object *obj) {
 	object *vec = car(obj);
 	unsigned long ind = car(cdr(obj))->data.fixnum.value;
+	
+	if (ind < 0 || ind >= vec->data.vector.limit)
+		throw_error("<-address: out of bound exception");
+
 	object *newval = car(cdr(cdr(obj)));
 	vec->data.vector.vec[ind] = newval;
 	return vec;
@@ -1006,7 +1015,7 @@ char eq_vectors(object *obj1, object *obj2) {
 	if (obj1->data.vector.limit != obj2->data.vector.limit)
 		return 0;
 
-	for (i = 1; i <= obj1->data.vector.limit; i++)
+	for (i = 0; i < obj1->data.vector.limit; i++)
 		if (false == is_eq_proc ( cons (obj1->data.vector.vec[i], cons(obj2->data.vector.vec[i], the_empty_list))))
 			return 0;
 
@@ -2020,11 +2029,11 @@ object *expand_clauses(object *clauses) {
 	else {
 		first = car(clauses);
 		rest  = cdr(clauses);
-		printf("--> cond\n");
-		printf("first clause: \n");
-		println(first);
-		printf("rest clauses: \n");
-		println(rest);
+		/* printf("--> cond\n"); */
+		/* printf("first clause: \n"); */
+		/* println(first); */
+		/* printf("rest clauses: \n"); */
+		/* println(rest); */
 			
 		/* if (is_cond_else_clause(first)) { */
 		/* 	if (is_the_empty_list(rest)) { */
