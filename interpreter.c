@@ -147,6 +147,8 @@ object *jmp_envs;
 
 object *homedir_obj;
 
+object *call_stack;
+
 object *cons(object *car, object *cdr);
 object *car(object *pair);
 object *cdr(object *pair);
@@ -756,10 +758,15 @@ object *cons_proc(object *arguments) {
 }
 
 object *car_proc(object *arguments) {
+	if (!is_pair(car(arguments)))
+		throw_error("car: argument is not a list");
 	return caar(arguments);
 }
 
 object *cdr_proc(object *arguments) {
+	if (!is_pair(car(arguments)))
+		throw_error("car: argument is not a list");
+	
 	return cdar(arguments);
 }
 
@@ -1518,7 +1525,7 @@ void init(void) {
 		cons(make_string(IMP_IMPL), the_empty_list),
 		symbols_env);
 
-	
+	call_stack = the_empty_list;
 
 	/* add_procedure("eval-without-macros", (struct object * (*)(struct object *)) eval_without_macros_proc); */
 	/* add_procedure("value", value_proc); */
@@ -2355,6 +2362,9 @@ tailcall:
 		/* 	tmp = cdr(tmp); */
 		/* } */
 		/* TODO: NEED AN EXTRA STACK SYMBOL TABLE FOR CLOSURE BINDINGS  */
+
+		call_stack = cons(operator(exp), call_stack);
+		
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
 		/* tmp = operands(exp); */
@@ -2510,7 +2520,7 @@ void print(object *obj) {
 	case VECTOR:
 		printf ("<");
 		#define MAX_VEC_PRINT 10
-		for (i = 1; i <= obj->data.vector.limit; i++) {
+		for (i = 0; i < obj->data.vector.limit; i++) {
 			printf(" ");
 			print(obj->data.vector.vec[i]);
 			if ( i > MAX_VEC_PRINT ) {

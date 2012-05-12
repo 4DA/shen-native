@@ -1,0 +1,110 @@
+(load-kl "kl-src/toplevel.kl")
+(load-kl "kl-src/core.kl")
+(load-kl "kl-src/sys.kl")
+(load-kl "kl-src/sequent.kl")
+(load-kl "kl-src/yacc.kl")
+(load-kl "kl-src/reader.kl")
+(load-kl "kl-src/prolog.kl")
+(load-kl "kl-src/track.kl") 
+(load-kl "kl-src/load.kl") 
+(load-kl "kl-src/writer.kl")
+(load-kl "kl-src/macros.kl")
+
+(set shen-*installing-kl* false)
+
+(set shen-*history* ())
+
+(set shen-*tc* false)
+
+(set shen-*property-vector* (vector 20000))
+
+(set shen-*process-counter* 0)
+
+(set shen-*varcounter* (vector 1000))
+
+(set shen-*prologvectors* (vector 1000))
+
+(set shen-*reader-macros* ())
+
+(set *printer* (cons shen-sys-print ()))
+
+(set *home-directory* ())
+
+(set shen-*gensym* 0)
+
+(set shen-*tracking* ())
+
+(set *home-directory* "")
+
+(set shen-*alphabet*
+ (cons A
+  (cons B
+   (cons C
+    (cons D
+     (cons E
+      (cons F
+       (cons G
+        (cons H
+         (cons I
+          (cons J
+           (cons K
+            (cons L
+             (cons M
+              (cons N
+               (cons O
+                (cons P
+                 (cons Q
+                  (cons R
+                   (cons S
+                    (cons T
+                     (cons U
+                      (cons V
+                       (cons W
+                        (cons X (cons Y (cons Z ())))))))))))))))))))))))))))
+
+(set shen-*special*
+ (cons @p
+  (cons @s
+   (cons @v
+    (cons cons
+     (cons lambda
+      (cons let
+       (cons type (cons where (cons input+ (cons set (cons open ()))))))))))))
+
+(set shen-*extraspecial* (cons define (cons shen-process-datatype ())))
+
+(set shen-*spy* false)
+
+(set shen-*datatypes* ())
+
+(set shen-*alldatatypes* ())
+
+(set shen-*synonyms* ())
+
+(set shen-*system* ())
+
+(set shen-*signedfuncs* ())
+
+(set shen-*hush* "Shen unhushed")
+
+(set shen-*maxcomplexity* 128)
+
+(set shen-*occurs* true)
+
+(set shen-*maxinferences* 1000000)
+
+(set *maximum-print-sequence-size* 20)
+
+(set shen-*catch* 0)
+
+(defun shen-initialise_arity_table (V1494)
+ (cond ((= () V1494) ())
+  ((and (cons? V1494) (cons? (tl V1494)))
+   (let DecArity
+    (put (hd V1494) arity (hd (tl V1494)) (value shen-*property-vector*))
+    (shen-initialise_arity_table (tl (tl V1494)))))
+  (true (shen-sys-error shen-initialise_arity_table))))
+
+(defun arity (V1495)
+ (trap-error (get V1495 arity (value shen-*property-vector*)) (lambda E -1)))
+
