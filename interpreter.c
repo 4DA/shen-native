@@ -785,7 +785,7 @@ object *list_proc(object *arguments) {
 }
 
 object *iscons_proc(object *arguments) {
-	return is_the_empty_list(car(arguments)) ? false : true;
+	return is_pair(car(arguments)) ? true : false;
 }
 
 object *pos_proc(object *arguments) {
