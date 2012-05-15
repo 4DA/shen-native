@@ -804,6 +804,9 @@ object *tlstr_proc(object *arguments) {
 }
 
 object *cn_proc(object *arguments) {
+	if (!is_string(car(arguments)) || !is_string(car(cdr(arguments))))
+		throw_error("cn: input parameter(s) is(are) not string(s)");
+	
 	char *str1 = car (arguments)->data.string.value;
 	char *str2 = car (cdr (arguments))->data.string.value;
 
@@ -811,8 +814,9 @@ object *cn_proc(object *arguments) {
 	int len2 = strlen(str2);
 
 	char *res = malloc(len1+len2+1);
-	strncpy(res, str1, len1);
-	strncat(res, str2, len2);
+	/* strncpy(res, str1, len1); */
+	/* strncat(res, str2, len2); */
+	sprintf(res, "%s%s", str1, str2);
 	
 	return make_string(res);
 }
