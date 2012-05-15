@@ -441,7 +441,7 @@ object *integer_to_char_proc(object *arguments) {
 object *number_to_string_proc(object *arguments) {
 	char buffer[100];
 
-	sprintf(buffer, "%lld", (car(arguments))->data.fixnum.value);
+	sprintf(buffer, "%ld", (car(arguments))->data.fixnum.value);
 	return make_string(buffer);
 }
 
@@ -822,22 +822,29 @@ object *str_proc(object *arguments) {
 	switch(car(arguments)->type) {
 	case FIXNUM:
 		res = malloc(20);
-		sprintf(res, "^%lld^", car(arguments)->data.fixnum.value);
+		sprintf(res, "%ld", car(arguments)->data.fixnum.value);
 		break;
 	case DOUBLE:
 		res = malloc(20);
-		sprintf(res, "^%lf^", car(arguments)->data.double_num.value);
+		sprintf(res, "%lf", car(arguments)->data.double_num.value);
 		break;
 	case SYMBOL:
 		res = malloc(strlen(car(arguments)->data.symbol.value)+1);
-		sprintf(res, "^%s^", car(arguments)->data.symbol.value);
+		sprintf(res, "%s", car(arguments)->data.symbol.value);
 		break;
 	case STRING:
 		res = malloc(strlen(car(arguments)->data.string.value)+1);
-		sprintf(res, "^%s^", car(arguments)->data.string.value);
+		sprintf(res, "%s%s%s", "\"", car(arguments)->data.string.value, "\"");
 		break;
-	case THE_EMPTY_LIST:
 	case BOOLEAN:
+		res = malloc(7);
+		sprintf(res, "%s", (car(arguments)->data.boolean.value == 1) ? "true" : "false");
+		break;
+		
+	case VECTOR:
+		
+
+	case THE_EMPTY_LIST:
 	case ARGUMENT:
 	case CHARACTER:
 	case PAIR:
@@ -846,9 +853,8 @@ object *str_proc(object *arguments) {
 	case FREEZE:
 	case JMP_ENV:
 	case EXCEPTION:
-	case VECTOR:
 	case FILE_STREAM:
-		break;
+		throw_error("str: argument is not an atom");
 	}
 	return make_string(res);
 }
@@ -997,6 +1003,10 @@ object *is_absvector_proc(object *obj) {
 
 object *get_vec_elem_proc(object *obj) {
 	object *vec = car(obj);
+	
+	if (vec->type != VECTOR)
+		throw_error("<-address: argument is not a vector");
+		
 	unsigned long ind = car(cdr(obj))->data.fixnum.value;
 
 	if (ind < 0 || ind >= vec->data.vector.limit)
@@ -1007,6 +1017,10 @@ object *get_vec_elem_proc(object *obj) {
 
 object *set_vec_elem_proc(object *obj) {
 	object *vec = car(obj);
+
+	if (vec->type != VECTOR)
+		throw_error("address->: argument is not a vector");
+
 	unsigned long ind = car(cdr(obj))->data.fixnum.value;
 	
 	if (ind < 0 || ind >= vec->data.vector.limit)
@@ -2363,7 +2377,7 @@ tailcall:
 		/* } */
 		/* TODO: NEED AN EXTRA STACK SYMBOL TABLE FOR CLOSURE BINDINGS  */
 
-		call_stack = cons(operator(exp), call_stack);
+		/* call_stack = cons(operator(exp), call_stack); */
 		
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 
@@ -2458,7 +2472,7 @@ void print(object *obj) {
 		printf("%s", obj->data.symbol.value);
 		break;
 	case FIXNUM:
-		printf("%lld", obj->data.fixnum.value);
+		printf("%ld", obj->data.fixnum.value);
 		break;
 	case DOUBLE:
 		printf("%lf", obj->data.double_num.value);
