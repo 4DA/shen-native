@@ -544,9 +544,9 @@ object *sub_proc(object *arguments) {
 	object *obj2 = car(cdr(arguments));
 	char isdres = 0;
 
-	printf("--> sub_proc ( ");
-	print(arguments);
-	printf(" )\n");
+	/* printf("--> sub_proc ( "); */
+	/* print(arguments); */
+	/* printf(" )\n"); */
 
 	if (!is_number(obj1) && !is_number(obj2))
 		throw_error("#<PROCEDURE -> error: not a number");
