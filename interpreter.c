@@ -755,7 +755,7 @@ object *is_less_than_or_equal_proc(object *arguments) {
 }
 
 object *is_number_proc(object *arguments) {
-	return (car(arguments)->type == FIXNUM) ? true : false;
+	return (car(arguments)->type == FIXNUM || car(arguments)->type == DOUBLE) ? true : false;
 }
 
 
@@ -956,6 +956,9 @@ object *is_eq_proc(object *arguments) {
 }
 
 object *and_proc(object *arguments) {
+	if (!is_boolean(car(arguments)) || !is_boolean(car(cdr(arguments))))
+		throw_error("and: not boolean arg(s)");
+	
 	return make_boolean(
 		car(arguments)->data.boolean.value && 
 		car(cdr(arguments))->data.boolean.value);
@@ -963,6 +966,9 @@ object *and_proc(object *arguments) {
 
 object *or_proc(object *arguments)
 {
+	if (!is_boolean(car(arguments)) || !is_boolean(car(cdr(arguments))))
+		throw_error("and: not boolean arg(s)");
+	
 	return make_boolean(
 		car(arguments)->data.boolean.value || 
 		car(cdr(arguments))->data.boolean.value);
@@ -994,7 +1000,6 @@ object *make_vector(unsigned int length) {
 	for (i = 0; i < length; i++)
 		obj->data.vector.vec[i] = fail_symbol;
 		
-	/* obj->data.vector.vec[0] = (struct object*) 0; */
 	if (obj->data.vector.vec == NULL) {
 		fprintf(stderr, "out of memory\n");
 		exit(1);
@@ -1073,7 +1078,7 @@ object *open_proc(object *args) {
 
 	if (type != file_symbol) {
 		return NULL;
-	/* TODO: throw error */
+		/* TODO: throw error */
 	}
 
 	char *fpath = path_obj->data.string.value;
@@ -2342,7 +2347,7 @@ tailcall:
 	else if(is_eval_without_macros(exp)) {
 		/* return eval(car(cdr(exp)), env, 0); */
 		/* exp = eval(car(cdr(exp)), env, 0); */
-		return eval(car(cdr(car(cdr(exp)))), env, 0);
+		return eval(car(cdr(exp)), env, 0);
 		/* goto tailcall; */
 	}
 
