@@ -875,11 +875,17 @@ object *str_to_n_proc(object *arguments) {
 	}
 	char sym = car(arguments)->data.string.value[0];
 
+	if (sym == '\0')
+		throw_error("string->n: empty string");
+
 	return make_fixnum((int) sym);
 }
 
 object *n_to_str_proc(object *arguments) {
 	int code = car(arguments)->data.fixnum.value;
+
+	if (code < 0 || code > 255)
+		throw_error("n->string: bad symbol");
 
 	char res[2];
 	res[0] = code;
@@ -2434,10 +2440,10 @@ tailcall:
 			goto tailcall;
 		}
 		else {
-			fprintf(stderr, "unknown procedure type: ");
-			print(procedure);
-			printf("\npr type: %d\n", procedure->type);
-			exit(1);
+			throw_error("unknown procedure type");
+			/* print(procedure); */
+			/* printf("\npr type: %d\n", procedure->type); */
+			/* exit(1); */
 		}
 	}
 	else {
