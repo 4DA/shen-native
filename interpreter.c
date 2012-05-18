@@ -583,9 +583,6 @@ object *mul_proc(object *arguments) {
 	object *obj;
 	char isdres = 0;
 
-	printf("--> mul_proc ( ");
-	print(arguments);
-	printf(" )\n");
 	/* printf("\n"); */
 	/* printf("arg: ");     */
 	while (!is_the_empty_list(arguments)) {
@@ -628,10 +625,6 @@ object *div_proc(object *arguments) {
 	object *obj2 = car(cdr(arguments));
 	/* char isdres = 0; */
 
-	printf("--> div_proc ( ");
-	print(arguments);
-	printf(" )\n");
-
 	if (!is_number(obj1) && !is_number(obj2))
 		throw_error("#<PROCEDURE /> error: not a number");
 	/* printf("\n"); */
@@ -640,6 +633,15 @@ object *div_proc(object *arguments) {
 	/* 	isdres = 1; */
 	
 	/* if (isdres){ */
+
+	if (is_double(obj2)) 
+		if (obj2->data.double_num.value == 0)
+			throw_error("/: div by zero");
+
+	if (is_fixnum(obj2)) 
+		if (obj2->data.fixnum.value == 0)
+			throw_error("/: div by zero");
+
 		return make_double(
 			(is_double(obj1) ? obj1->data.double_num.value : obj1->data.fixnum.value)
 			/
