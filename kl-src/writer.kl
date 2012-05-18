@@ -1,0 +1,109 @@
+
+"                                                   The License
+ 
+ The user is free to produce commercial applications with the software, to distribute these applications in source or binary  form, and to charge monies for them as he sees fit and in concordance with the laws of the land subject to the following  license.
+ 
+ 1. The license applies to all the software and all derived software and must appear on such.
+ 2. It is illegal to distribute the software without this license attached to it and use of the software implies agreement 
+    with the license as such. It is illegal for anyone who is not the copyright holder to tamper with or change the license.
+ 3. Neither the names of Lambda Associates or the copyright holder may be used to endorse or promote products built using
+     the software without specific prior written permission from the copyright holder.
+ 4. That possession of this license does not confer on the copyright holder any special contractual obligation towards the    user. That in no event shall the copyright holder be liable for any direct, indirect, incidental, special, exemplary or   consequential damages (including but not limited to procurement of substitute goods or services, loss of use, data, or    profits; or business interruption), however caused and on any theory of liability, whether in contract, strict liability   or tort (including negligence) arising in any way out of the use of the software, even if advised of the possibility of   such damage. 
+5. It is permitted for the user to change the software, for the purpose of improving performance, correcting an error, or    porting to a new platform, and distribute the modified version of Shen (hereafter the modified version) provided the     resulting program conforms in all respects to the Shen standard and is issued under that title. The user must make it clear   with his distribution that he/she is the author of the changes and what these changes are and why. 
+6. Derived versions of this software in whatever form are subject to the same restrictions. In particular it is not          permitted to make derived copies of this software which do not conform to the Shen standard or appear under a different title.
+7. It is permitted to distribute versions of Shen which incorporate libraries, graphics or other facilities which are not    part of the Shen standard.
+
+For an explication of this license see http://www.lambdassociates.org/News/june11/license.htm which explains this license in full."
+
+(defun print (V1040)
+ (do
+  (pr (shen-ms-h (cons "~" (cons "S" ())) (@p V1040 shen-skip)) (stinput 0))
+  V1040))
+
+(defun format (V1041 V1042 V1043)
+ (cond ((= true V1041) (intoutput V1042 (@p V1043 ())))
+  ((= false V1041) (intmake-string V1042 (@p V1043 ())))
+  (true (pr (shen-ms-h (explode V1042) V1043) V1041))))
+
+(defun intoutput (V1048 V1049)
+ (cond ((= (value shen-*hush*) "Shen hushed") "Shen hushed")
+  ((= "Shen unhushed" V1048) "Shen unhushed")
+  (true (pr (shen-ms-h (shen-explode-string V1048) V1049) (stinput 0)))))
+
+(defun interror (V1050 V1051)
+ (simple-error (shen-ms-h (shen-explode-string V1050) V1051)))
+
+(defun intmake-string (V1052 V1053)
+ (shen-ms-h (shen-explode-string V1052) V1053))
+
+(defun shen-ms-h (V1056 V1057)
+ (cond ((= () V1056) "")
+  ((and (cons? V1056)
+    (and (= "~" (hd V1056))
+     (and (cons? (tl V1056)) (= "%" (hd (tl V1056))))))
+   (cn (n->string 10) (shen-ms-h (tl (tl V1056)) V1057)))
+  ((and (cons? V1056)
+    (and (= "~" (hd V1056))
+     (and (cons? (tl V1056))
+      (and (tuple? V1057)
+       (element? (hd (tl V1056)) (cons "A" (cons "S" (cons "R" ()))))))))
+   (cn (shen-ob->str (hd (tl V1056)) (fst V1057))
+    (shen-ms-h (tl (tl V1056)) (snd V1057))))
+  ((cons? V1056) (cn (hd V1056) (shen-ms-h (tl V1056) V1057)))
+  (true (shen-sys-error shen-ms-h))))
+
+(defun shen-ob->str (V1058 V1059)
+ (cond ((= () V1059) (if (= V1058 "R") "()" "[]"))
+  ((= V1059 (vector 0)) "<>")
+  ((cons? V1059)
+   (shen-cn-all
+    (append (if (= V1058 "R") (cons "(" ()) (cons "[" ()))
+     (append (cons (shen-ob->str V1058 (hd V1059)) ())
+      (append
+       (shen-xmapcan (value *maximum-print-sequence-size*)
+        (lambda Z (cons " " (cons (shen-ob->str V1058 Z) ()))) (tl V1059))
+       (if (= V1058 "R") (cons ")" ()) (cons "]" ())))))))
+  ((vector? V1059)
+   (let L (shen-vector->list V1059 1)
+    (let E
+     (tlstr
+      (shen-cn-all
+       (shen-xmapcan (- (value *maximum-print-sequence-size*) 1)
+        (lambda Z (cons " " (cons (shen-ob->str V1058 (shen-blank-fail Z)) ()))) L)))
+     (let V (cn "<" (cn E ">")) V))))
+  ((and (not (string? V1059)) (absvector? V1059))
+   (trap-error (shen-ob->str "A" ((<-address V1059 0) V1059))
+    (lambda Ignore
+     (let L (shen-vector->list V1059 0)
+      (let E
+       (tlstr
+        (shen-cn-all
+         (shen-xmapcan (- (value *maximum-print-sequence-size*) 1)
+          (lambda Z (cons " " (cons (shen-ob->str V1058 Z) ()))) L)))
+       (let V (cn "<" (cn E ">")) V))))))
+  ((= V1059 shen-vector-failure-object) "...")
+  (true (if (and (= V1058 "A") (string? V1059)) V1059 (str V1059)))))
+
+(defun shen-blank-fail (X)
+  (cond ((= X (fail)) shen-vector-failure-object)
+        (true X)))         
+
+(defun shen-tuple (V1060)
+ (intmake-string "(@p ~S ~S)" (@p (fst V1060) (@p (snd V1060) ()))))
+
+(defun shen-cn-all (V1061)
+ (cond ((= () V1061) "")
+  ((cons? V1061) (cn (hd V1061) (shen-cn-all (tl V1061))))
+  (true (shen-sys-error shen-cn-all))))
+
+(defun shen-xmapcan (V1074 V1075 V1076)
+ (cond ((= () V1076) ()) ((= 0 V1074) (cons "... etc" ()))
+  ((cons? V1076)
+   (append (V1075 (hd V1076)) (shen-xmapcan (- V1074 1) V1075 (tl V1076))))
+  (true (cons " |" (V1075 V1076)))))
+
+(defun shen-vector->list (V1077 V1078)
+ (let Y (trap-error (<-address V1077 V1078) (lambda E shen-out-of-range))
+  (if (= Y shen-out-of-range) ()
+   (cons Y (shen-vector->list V1077 (+ V1078 1))))))
+
