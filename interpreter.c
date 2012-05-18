@@ -171,7 +171,11 @@ char is_false(object *obj) {
 }
 
 char is_true(object *obj) {
-	return !is_false(obj);
+	if (obj == true) return 1;
+	if (obj == false) return 0;
+	
+	throw_error("if: not bool");
+	return 0;
 }
 
 object *make_symbol(char *value) {
