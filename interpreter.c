@@ -2305,7 +2305,12 @@ tailcall:
 		goto tailcall;
 	}
 	else if (is_value(exp)) {
-		object *obj = lookup_variable_value(binding_argument(exp), symbols_env);
+		object *obj = NULL;
+		if (is_symbol(binding_argument(exp)))
+			obj = lookup_variable_value(binding_argument(exp), symbols_env);
+		else
+			obj = lookup_variable_value(eval(binding_argument(exp),env,0), symbols_env);
+		
 		if (obj != NULL)
 			return obj;
 		else {
