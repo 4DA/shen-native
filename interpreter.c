@@ -1,7 +1,19 @@
 /*
- * Bootstrap KL 
- * Copyright (C) 2012 Dmitry Cherkassov
- * BSD license
+ * SHen native interpreter
+ * Copyright (c) 2012 Dmitry CHerkassov.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms are permitted
+ * provided that the above copyright notice and this paragraph are
+ * duplicated in all such forms and that any documentation,
+ * advertising materials, and other materials related to such
+ * distribution and use acknowledge that the software was developed
+ * by the <organization>.  The name of the
+ * University may not be used to endorse or promote products derived
+ * from this software without specific prior written permission.
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 #include <stdlib.h>
@@ -468,11 +480,6 @@ object *add_proc(object *arguments) {
 	object *obj;
 	char isdres = 0;
 
-	/* printf("--> addproc ( "); */
-	/* print(arguments); */
-	/* printf(" )\n"); */
-	/* printf("\n"); */
-	/* printf("arg: ");     */
 	while (!is_the_empty_list(arguments)) {
 		obj = car(arguments);
 		
@@ -501,56 +508,10 @@ object *add_proc(object *arguments) {
 }
 
 object *sub_proc(object *arguments) {
-	/* /\* long result; *\/ */
-    
-	/* /\* result = (car(arguments))->data.fixnum.value; *\/ */
-	/* /\* while (!is_the_empty_list(arguments = cdr(arguments))) { *\/ */
-	/* /\* 	result -= (car(arguments))->data.fixnum.value; *\/ */
-	/* /\* } *\/ */
-	/* /\* return make_fixnum(result); *\/ */
-	/* double fresult = 0.0; */
-	/* int64_t result = 0; */
-	/* object *obj; */
-	/* char isdres = 0; */
-
-	/* printf("--> sub_proc ( "); */
-	/* print(arguments); */
-	/* printf(" )\n"); */
-	/* /\* printf("\n"); *\/ */
-	/* /\* printf("arg: ");     *\/ */
-	/* while (!is_the_empty_list(arguments)) { */
-	/* 	obj = car(arguments); */
-		
-	/* 	if (is_double(obj)) { */
-	/* 		if (!isdres) { */
-	/* 			isdres = 1; */
-	/* 			fresult = result; */
-	/* 		} */
-				
-	/* 		fresult -= obj->data.double_num.value; */
-	/* 	} */
-	/* 	else if(is_fixnum(obj)) */
-	/* 		if (!isdres) */
-	/* 			result -= obj->data.fixnum.value; */
-	/* 		else */
-	/* 			fresult -= obj->data.fixnum.value; */
-	/* 	else */
-	/* 		throw_error("#<PROCEDURE -> error: not a number"); */
-
-	/* 	arguments = cdr(arguments); */
-	/* } */
-	/* if (isdres) */
-	/* 	return make_double(fresult); */
-	/* else */
-	/* 	return make_fixnum(result); */
-
 	object *obj1 = car(arguments);
 	object *obj2 = car(cdr(arguments));
 	char isdres = 0;
 
-	/* printf("--> sub_proc ( "); */
-	/* print(arguments); */
-	/* printf(" )\n"); */
 
 	if (!is_number(obj1) && !is_number(obj2))
 		throw_error("#<PROCEDURE -> error: not a number");
@@ -575,13 +536,6 @@ object *sub_proc(object *arguments) {
 }
 
 object *mul_proc(object *arguments) {
-	/* long result = 1; */
-    
-	/* while (!is_the_empty_list(arguments)) { */
-	/* 	result *= (car(arguments))->data.fixnum.value; */
-	/* 	arguments = cdr(arguments); */
-	/* } */
-	/* return make_fixnum(result); */
 	double fresult = 1.0;
 	int64_t result = 1;
 	object *obj;
@@ -618,25 +572,12 @@ object *mul_proc(object *arguments) {
 }
 
 object *div_proc(object *arguments) {
-	/* long result = 1; */
-    
-	/* while (!is_the_empty_list(arguments)) { */
-	/* 	result *= (car(arguments))->data.fixnum.value; */
-	/* 	arguments = cdr(arguments); */
-	/* } */
-	/* return make_fixnum(result); */
 	object *obj1 = car(arguments);
 	object *obj2 = car(cdr(arguments));
 	/* char isdres = 0; */
 
 	if (!is_number(obj1) && !is_number(obj2))
 		throw_error("#<PROCEDURE /> error: not a number");
-	/* printf("\n"); */
-	/* printf("arg: ");     */
-	/* if (is_double(obj1) || is_double(obj2)) */
-	/* 	isdres = 1; */
-	
-	/* if (isdres){ */
 
 	if (is_double(obj2)) 
 		if (obj2->data.double_num.value == 0)
@@ -652,13 +593,6 @@ object *div_proc(object *arguments) {
 			(is_double(obj2) ? obj2->data.double_num.value : obj2->data.fixnum.value)
 			);
 
-/* } */
-	/* else */
-	/* 	return make_fixnum( */
-	/* 		obj1->data.fixnum.value */
-	/* 		/ */
-	/* 		obj2->data.fixnum.value */
-	/* 		); */
 }
 
 
@@ -1928,25 +1862,13 @@ char is_eval_without_macros(object *exp) {
 }
 
 object *definition_variable(object *exp) {
-	/* if (is_symbol(cadr(exp))) { */
-	/* 	return cadr(exp); */
-	/* } */
-	/* else { */
-	/* printf("in definition_variable\n"); */
-	/* dump_object(exp, "in definition_variable: "); */
 	return cadr(exp);
-	/* } */
 }
 
 object *make_lambda(object *parameters, object *body);
 
 object *definition_value(object *exp) {
-	/* dump_object(exp, "in definition_value: \n"); */
-	/* dump_object(caddr(exp), "args: "); */
-	/* dump_object(cadddr(exp), "body: "); */
-	
 	return make_lambda(caddr(exp), cdddr(exp));
-	/* printf("<-- definition_value\n"); */
 }
 
 object *make_if(object *predicate, object *consequent,
@@ -2071,26 +1993,10 @@ object *expand_clauses(object *clauses) {
 	else {
 		first = car(clauses);
 		rest  = cdr(clauses);
-		/* printf("--> cond\n"); */
-		/* printf("first clause: \n"); */
-		/* println(first); */
-		/* printf("rest clauses: \n"); */
-		/* println(rest); */
-			
-		/* if (is_cond_else_clause(first)) { */
-		/* 	if (is_the_empty_list(rest)) { */
-		/* 		return sequence_to_exp(cond_actions(first)); */
-		/* 	} */
-		/* 	else { */
-		/* 		fprintf(stderr, "else clause isn't last cond->if"); */
-		/* 		exit(1); */
-		/* 	} */
-		/* } */
-		/* else { */
 			return make_if(cond_predicate(first),
 				       sequence_to_exp(cond_actions(first)),
 				       expand_clauses(rest));
-		/* } */
+
 	}
 }
 
@@ -2216,16 +2122,6 @@ object *eval_assignment(object *exp, object *env, unsigned long flags) {
 	set_variable_value(assignment_variable(exp), 
 			   eval(assignment_value(exp), env, flags),
 			   symbols_env);
-	/* printf("assgn env: "); */
-	/* print(env); */
-	/* printf("\n"); */
-
-	/* long flags = EF_ARGUMENTS; */
-	/* printf("EF is %lu\n", !(~flags & EF_ARGUMENTS)); */
-
-	/* printf("in ev_asgn: symbols_env = "); */
-	/* print(symbols_env); */
-	/* printf("\n"); */
 
 	return ok_symbol;
 }
@@ -2393,36 +2289,7 @@ tailcall:
 		else 
 			procedure = eval(operator(exp), env, flags);
 
-		/* object *tmp = operands(exp); */
-
-		/* while (!is_empty_list(tmp)) { */
-		/* 	if (is_symbol(car(tmp))) { */
-		/* 		car(tmp)->data.symbol.is_argument = 1; */
-		/* 	} */
-		/* 	tmp = cdr(tmp); */
-		/* } */
-		/* TODO: NEED AN EXTRA STACK SYMBOL TABLE FOR CLOSURE BINDINGS  */
-
-		/* call_stack = cons(operator(exp), call_stack); */
-		
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
-
-		/* tmp = operands(exp); */
-		/* while (!is_empty_list(tmp)) { */
-		/* 	if (is_symbol(car(tmp))) { */
-		/* 		car(tmp)->data.symbol.is_argument = 0; */
-		/* 	} */
-		/* 	tmp = cdr(tmp); */
-		/* } */
-
-
-		/* printf("\n----------\nprocedure: "); */
-		/* print(procedure); */
-		/* printf("\n"); */
-
-		/* printf("\n---------\nargs: "); */
-		/* print(arguments); */
-		/* printf("\n-----------\n"); */
 	       
 		if (is_primitive_proc(procedure)) {
 			return (procedure->data.primitive_proc.fn)(arguments);
@@ -2441,9 +2308,6 @@ tailcall:
 		}
 		else {
 			throw_error("unknown procedure type");
-			/* print(procedure); */
-			/* printf("\npr type: %d\n", procedure->type); */
-			/* exit(1); */
 		}
 	}
 	else {
