@@ -2252,9 +2252,12 @@ tailcall:
 	}
 
 	else if(is_eval_without_macros(exp)) {
+		
+		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
+		
 		/* return eval(car(cdr(exp)), env, 0); */
 		/* exp = eval(car(cdr(exp)), env, 0); */
-		return eval(car(cdr(exp)), env, 0);
+		return eval(car(arguments), env, 0);
 		/* goto tailcall; */
 	}
 
