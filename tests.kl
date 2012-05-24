@@ -1,12 +1,5 @@
 (set *failed* (set *passed* 0))
 
-(defun test-is-old(X)
-  (if (= X true)
-      (begin (set *passed* (+ (value *passed*) 1))
-	     passed)
-      (begin (set *failed* (+ (value *failed*) 1))
-	     failed)))
-
 (defun test-is(X)
   (if (= X true)
       "passed"
