@@ -2236,7 +2236,10 @@ tailcall:
 		} else {
 			/* normal return */
 			/* call supervised function */
-			return eval(trap_func(exp), env, 0);
+			object *res = eval(trap_func(exp), env, 0);
+			jmp_envs = cdr(jmp_envs);
+			return res;
+			
 		}
 	}
 	else if(is_simple_error(exp)) {
@@ -2445,6 +2448,10 @@ void print(object *obj) {
 				obj->data.file_stream.type == FILE_IN ? "INPUT":"OUTPUT",
 				obj->data.file_stream.path
 			);
+		break;
+
+	case JMP_ENV:
+		printf("#<TRAP ENVIRNMENT>");
 		break;
 			
         default:
