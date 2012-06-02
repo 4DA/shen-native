@@ -2265,18 +2265,21 @@ tailcall:
 	}
 
 	else if (is_application(exp)) {
+	  procedure = operator(exp);
+	  
+	check_proc:
+	  if (is_symbol(procedure)) {
 
-		if (is_symbol(operator(exp))) {
-			
-			procedure = lookup_variable_value(operator(exp), env);
+		  object *pobj = procedure;
+			procedure = lookup_variable_value(procedure, env);
 
 			if (procedure == NULL) {
 				/* procedure is from global function env */
-				procedure = lookup_variable_value(operator(exp), funcs_env);
+				procedure = lookup_variable_value(pobj, funcs_env);
 				if (procedure == NULL) {
 					/* procedure is not globally defined */
 					char errstr[128];
-					sprintf(errstr, "unknown procedure: %s", operator(exp)->data.symbol.value);
+					sprintf(errstr, "unknown procedure: %s", pobj->data.symbol.value);
 					throw_error(errstr);
 				}
 			}
@@ -2292,8 +2295,11 @@ tailcall:
 			}
 				
 		}
-		else 
+		else {
 			procedure = eval(operator(exp), env, flags);
+			if (!is_primitive_proc(procedure) && !is_compound_proc(procedure))
+				goto check_proc;
+		}
 
 		arguments = list_of_values(operands(exp), env, flags | EF_ARGUMENTS);
 	       
