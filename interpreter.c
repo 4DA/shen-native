@@ -698,14 +698,20 @@ object *cons_proc(object *arguments) {
 }
 
 object *car_proc(object *arguments) {
+	if (is_empty_list(car(arguments)))
+		return the_empty_list;
+	
 	if (!is_pair(car(arguments)))
 		throw_error("car: argument is not a list");
 	return caar(arguments);
 }
 
 object *cdr_proc(object *arguments) {
+	if (is_empty_list(car(arguments)))
+		return the_empty_list;
+
 	if (!is_pair(car(arguments)))
-		throw_error("car: argument is not a list");
+		throw_error("cdr: argument is not a list");
 	
 	return cdar(arguments);
 }
